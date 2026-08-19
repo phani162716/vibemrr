@@ -1,20 +1,14 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useApp } from "@/components/app-provider";
 import { AuthPanel } from "@/components/auth-panel";
 import { IconCheck, IconSpark } from "@/components/icons";
-import {
-  CATEGORIES,
-  CITIES,
-  COMPANY_TYPES,
-  LISTING_PLANS,
-  PROVIDERS,
-  VIBE_TOOLS,
-} from "@/lib/providers";
-import { formatInrFull, hashMetrics, slugify } from "@/lib/format";
-import type { CompanyType, ListingTier, ProviderId, Startup, VibeTool } from "@/lib/types";
+import { CATEGORIES, CITIES, COMPANY_TYPES, PROVIDERS, VIBE_TOOLS } from "@/lib/providers";
+import { formatInrFull, slugify } from "@/lib/format";
+import type { CompanyType, ProviderId, Startup, VibeTool } from "@/lib/types";
+import type { VerifyMetrics } from "@/lib/verify/types";
 
 const STEPS = ["Basics", "Verify", "Story", "Publish"];
 
@@ -30,8 +24,11 @@ export default function AddPage() {
   const [category, setCategory] = useState("SaaS");
   const [city, setCity] = useState("Bengaluru");
   const [provider, setProvider] = useState<ProviderId>("razorpay");
-  const [demo, setDemo] = useState(true);
-  const [apiKey, setApiKey] = useState("");
+  const [keyId, setKeyId] = useState("");
+  const [keySecret, setKeySecret] = useState("");
+  const [metrics, setMetrics] = useState<VerifyMetrics | null>(null);
+  const [verified, setVerified] = useState(false);
+  const [verifying, setVerifying] = useState(false);
   const [vibeCoded, setVibeCoded] = useState(true);
   const [vibeTools, setVibeTools] = useState<VibeTool[]>(["cursor"]);
   const [companyType, setCompanyType] = useState<CompanyType>("unregistered");
@@ -41,16 +38,43 @@ export default function AddPage() {
   const [pricing, setPricing] = useState("₹499 / month");
   const [forSale, setForSale] = useState(false);
   const [asking, setAsking] = useState("");
-  const [tier, setTier] = useState<ListingTier>("free");
   const [email, setEmail] = useState(session?.email ?? "");
   const [founderName, setFounderName] = useState(session?.name ?? "");
   const [whatsapp, setWhatsapp] = useState(session?.whatsapp ?? "");
   const [handle, setHandle] = useState("");
 
-  const metrics = useMemo(() => hashMetrics(name || website || "demo"), [name, website]);
+  const zeros: VerifyMetrics = {
+    mrrInr: 0,
+    revenue30dInr: 0,
+    allTimeInr: 0,
+    activeSubs: 0,
+    customers: 0,
+    momGrowth: 0,
+  };
 
   function toggleTool(id: VibeTool) {
     setVibeTools((cur) => (cur.includes(id) ? cur.filter((t) => t !== id) : [...cur, id]));
+  }
+
+  async function runVerify() {
+    setVerifying(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/verify-revenue", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ provider, keyId, keySecret }),
+      });
+      const data = (await res.json()) as { error?: string; metrics?: VerifyMetrics };
+      if (!res.ok || !data.metrics) throw new Error(data.error || "Verification failed");
+      setMetrics(data.metrics);
+      setVerified(true);
+    } catch (e) {
+      setVerified(false);
+      setError(e instanceof Error ? e.message : "Verification failed");
+    } finally {
+      setVerifying(false);
+    }
   }
 
   async function publish() {
@@ -63,14 +87,14 @@ export default function AddPage() {
       slug,
       name: name || "Untitled startup",
       tagline: tagline || "A new Indian SaaS",
-      description: valueProp || tagline || "Listed on VibeMRR with verified demo revenue.",
+      description: valueProp || tagline || "Listed on VibeMRR.",
       category,
       website: website || undefined,
       logoLetter: (name || "V").charAt(0).toUpperCase(),
       logoColor: "#FF6B1A",
       forSale,
       askingInr: forSale && asking ? Number(asking) : undefined,
-      ...metrics,
+      ...(metrics ?? zeros),
       provider,
       lastSynced: new Date().toISOString(),
       founded: new Date().toISOString(),
@@ -92,9 +116,14 @@ export default function AddPage() {
       valueProp: valueProp || tagline,
       problem: problem || "Founders still paste fake MRR screenshots.",
       sellerMessage: forSale ? "Listed from the 60-second VibeMRR flow." : undefined,
-      tech: { frontend: ["Next.js"], backend: [provider === "razorpay" ? "Razorpay" : "Stripe"] },
+      tech: {
+        frontend: ["Next.js"],
+        backend: [provider === "razorpay" ? "Razorpay" : "Stripe"],
+        verified,
+      },
+      verified,
       channels: ["Twitter", "WhatsApp"],
-      listingTier: forSale ? (tier === "free" ? "starter" : tier) : "free",
+      listingTier: "free",
       ownerEmail,
       ownerId: session?.id,
       isDemo: false,
@@ -131,8 +160,8 @@ export default function AddPage() {
       <p className="text-xs font-semibold uppercase tracking-wider text-saffron">60-second listing</p>
       <h1 className="font-serif mt-1 text-4xl text-zinc-50">Add your startup</h1>
       <p className="mt-2 text-sm text-zinc-400">
-        TrustMRR asks for a live Stripe key before you can exist. Here you can demo-verify instantly
-        — then swap in a Razorpay/Cashfree restricted key when you&apos;re ready.
+        Listing is free. Connect Razorpay, Cashfree, or Stripe so the rupee numbers come from the
+        payment API — not a screenshot, not a hash.
       </p>
 
       <ol className="mt-6 flex gap-2 text-xs">
@@ -168,15 +197,19 @@ export default function AddPage() {
         {step === 1 && (
           <>
             <p className="text-sm text-zinc-400">
-              Pick how we verify rupees. Demo verify is for shipping the page today. Production keys
-              stay read-only.
+              Live verify uses Razorpay, Cashfree, or Stripe. Keys are sent to our server, used once
+              to pull totals, and never stored. The site is free.
             </p>
             <div className="grid gap-2">
-              {PROVIDERS.map((p) => (
+              {PROVIDERS.filter((p) => ["razorpay", "cashfree", "stripe"].includes(p.id)).map((p) => (
                 <button
                   key={p.id}
                   type="button"
-                  onClick={() => setProvider(p.id)}
+                  onClick={() => {
+                    setProvider(p.id);
+                    setVerified(false);
+                    setMetrics(null);
+                  }}
                   className={`rounded-xl border px-4 py-3 text-left ${
                     provider === p.id ? "border-saffron/50 bg-saffron/10" : "border-white/8 bg-card"
                   }`}
@@ -189,29 +222,54 @@ export default function AddPage() {
                 </button>
               ))}
             </div>
-            <label className="flex items-center gap-2 text-sm">
-              <input type="checkbox" checked={demo} onChange={(e) => setDemo(e.target.checked)} />
-              Demo-verify now (no API key) — recommended for vibe coders
-            </label>
-            {!demo && (
+            {provider !== "stripe" && (
               <Field
-                label={`Restricted ${PROVIDERS.find((p) => p.id === provider)?.name} key`}
-                value={apiKey}
-                onChange={setApiKey}
-                placeholder="rzp_test_… or rk_live_…"
+                label={provider === "cashfree" ? "Cashfree Client ID" : "Razorpay Key Id (rzp_live_…)"}
+                value={keyId}
+                onChange={setKeyId}
+                placeholder={provider === "cashfree" ? "CF…" : "rzp_live_…"}
               />
             )}
-            <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/8 p-4 text-sm">
-              <p className="font-medium text-emerald-300">Preview metrics</p>
-              <p className="mt-1 text-zinc-300">
-                MRR {formatInrFull(metrics.mrrInr)} · 30d {formatInrFull(metrics.revenue30dInr)} ·{" "}
-                {metrics.activeSubs} subs
-              </p>
-              <p className="mt-1 text-xs text-zinc-500">
-                In production these come from the payment API. Demo hashes your name so every listing
-                looks different.
-              </p>
-            </div>
+            <Field
+              label={
+                provider === "stripe"
+                  ? "Stripe restricted or secret key"
+                  : provider === "cashfree"
+                    ? "Cashfree Client Secret"
+                    : "Razorpay Key Secret"
+              }
+              value={keySecret}
+              onChange={setKeySecret}
+              placeholder={provider === "stripe" ? "rk_live_… or sk_live_…" : "secret"}
+              type="password"
+            />
+            <button
+              type="button"
+              onClick={() => void runVerify()}
+              disabled={verifying || !keySecret}
+              className="rounded-lg bg-white/10 px-4 py-2 text-sm disabled:opacity-40"
+            >
+              {verifying ? "Talking to the payment API…" : "Pull live revenue"}
+            </button>
+            {verified && metrics && (
+              <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/8 p-4 text-sm">
+                <p className="font-medium text-emerald-300">Live numbers from {provider}</p>
+                <p className="mt-1 text-zinc-300">
+                  MRR {formatInrFull(metrics.mrrInr)} · last 30 days {formatInrFull(metrics.revenue30dInr)} ·
+                  all-time {formatInrFull(metrics.allTimeInr)} · {metrics.activeSubs} subs
+                </p>
+              </div>
+            )}
+            <button
+              type="button"
+              onClick={() => {
+                setVerified(false);
+                setMetrics(zeros);
+              }}
+              className="text-xs text-zinc-500 hover:text-zinc-300"
+            >
+              Skip for now — list as unverified (₹0)
+            </button>
           </>
         )}
 
@@ -260,36 +318,14 @@ export default function AddPage() {
               <input type="checkbox" checked={forSale} onChange={(e) => setForSale(e.target.checked)} />
               Also list this on the marketplace
             </label>
-            {forSale && (
-              <>
-                <Field label="Asking price (₹)" value={asking} onChange={setAsking} type="number" />
-                <div className="grid gap-2">
-                  {LISTING_PLANS.filter((p) => p.id !== "free").map((p) => (
-                    <button
-                      key={p.id}
-                      type="button"
-                      onClick={() => setTier(p.id)}
-                      className={`rounded-xl border p-4 text-left ${
-                        tier === p.id ? "border-saffron/50 bg-saffron/10" : "border-white/8"
-                      }`}
-                    >
-                      <div className="flex justify-between">
-                        <span className="font-medium">{p.name}</span>
-                        <span>{p.priceInr === 0 ? "Free" : formatInrFull(p.priceInr)}</span>
-                      </div>
-                      <p className="mt-1 text-xs text-zinc-500">{p.perks.join(" · ")}</p>
-                    </button>
-                  ))}
-                </div>
-                <p className="text-xs text-zinc-500">
-                  Checkout is mocked in this build. Plans are priced for India (not $29 / $199 / $499).
-                </p>
-              </>
-            )}
+            {forSale && <Field label="Asking price (₹)" value={asking} onChange={setAsking} type="number" />}
+            <p className="text-xs text-zinc-500">Everything is free. No listing fee this year.</p>
             <div className="rounded-xl border border-white/8 bg-card p-4 text-sm text-zinc-300">
               <p className="font-medium text-zinc-100">{name || "Untitled"}</p>
-              <p>{city} · {category} · {provider}</p>
-              <p className="mt-1">{formatInrFull(metrics.mrrInr)} MRR</p>
+              <p>
+                {city} · {category} · {provider} · {verified ? "provider-verified" : "unverified"}
+              </p>
+              <p className="mt-1">{formatInrFull((metrics ?? zeros).mrrInr)} MRR</p>
             </div>
           </>
         )}
@@ -324,7 +360,7 @@ export default function AddPage() {
       {error && <p className="mt-4 text-sm text-red-400">{error}</p>}
       <p className="mt-6 flex items-center gap-2 text-xs text-zinc-600">
         <IconSpark className="text-saffron" />
-        Vibe coder path: name → demo verify → WhatsApp → live page.
+        Free forever this year. Connect Razorpay for a Verified badge.
       </p>
     </div>
   );

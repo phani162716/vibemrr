@@ -37,7 +37,7 @@ export default function HomePage() {
         <div className="relative mx-auto max-w-6xl px-4 pb-16 pt-16 sm:pt-24">
           <p className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/4 px-3 py-1 text-xs text-zinc-400">
             <IconShield className="h-3.5 w-3.5 text-emerald-400" />
-            Razorpay · Cashfree · PhonePe · Stripe verified
+            Razorpay · Cashfree · Stripe — live pull, free to list
           </p>
           <h1 className="font-serif max-w-3xl text-4xl leading-[1.1] text-zinc-50 sm:text-6xl">
             The database of verified startup revenues — built for India.
@@ -45,7 +45,7 @@ export default function HomePage() {
           <p className="mt-5 max-w-2xl text-base leading-7 text-zinc-400 sm:text-lg">
             Browse SaaS, WhatsApp tools, and weekend vibe-coded products with live MRR in{" "}
             <span className="text-zinc-200">rupees</span>. No fake screenshots. Deals close on
-            WhatsApp. Listing takes about a minute.
+            WhatsApp. Listing is free.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Link

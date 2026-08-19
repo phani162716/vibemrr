@@ -43,7 +43,7 @@ export type StartupRow = {
   problem: string | null;
   additional_info: string | null;
   seller_message: string | null;
-  tech: { frontend?: string[]; backend?: string[] } | null;
+  tech: { frontend?: string[]; backend?: string[]; verified?: boolean } | null;
   channels: string[] | null;
   listing_tier: string | null;
   looking_for_cofounder: boolean | null;
@@ -103,7 +103,9 @@ export function rowToStartup(row: StartupRow): Startup {
     tech: {
       frontend: row.tech?.frontend ?? [],
       backend: row.tech?.backend ?? [],
+      verified: Boolean(row.tech?.verified),
     },
+    verified: Boolean(row.tech?.verified),
     channels: row.channels ?? [],
     listingTier: (row.listing_tier as Startup["listingTier"]) ?? "free",
     lookingForCofounder: Boolean(row.looking_for_cofounder),
@@ -158,7 +160,7 @@ export function startupToRow(s: Startup, ownerId: string, ownerEmail: string) {
     problem: s.problem,
     additional_info: s.additionalInfo ?? null,
     seller_message: s.sellerMessage ?? null,
-    tech: s.tech,
+    tech: { ...s.tech, verified: Boolean(s.verified) },
     channels: s.channels,
     listing_tier: s.listingTier,
     looking_for_cofounder: Boolean(s.lookingForCofounder),

@@ -100,8 +100,10 @@ export default function StartupPage({ params }: { params: Promise<{ slug: string
           </div>
 
           <div className="mt-4 flex items-center gap-2 text-xs text-zinc-500">
-            <IconShield className="h-3.5 w-3.5 text-emerald-400" />
-            Revenue verified with {provider?.name} read-only key · Last synced {formatWhen(startup.lastSynced)} IST
+            <IconShield className={`h-3.5 w-3.5 ${startup.verified ? "text-emerald-400" : "text-zinc-500"}`} />
+            {startup.verified
+              ? `Revenue pulled live from ${provider?.name} · Last synced ${formatWhen(startup.lastSynced)} IST`
+              : "Unverified — founder has not connected Razorpay / Cashfree / Stripe yet. Treat numbers as claims."}
           </div>
 
           <section className="mt-10">

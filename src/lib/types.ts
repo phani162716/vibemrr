@@ -72,7 +72,8 @@ export interface Startup {
   problem: string;
   additionalInfo?: string;
   sellerMessage?: string;
-  tech: { frontend: string[]; backend: string[] };
+  tech: { frontend: string[]; backend: string[]; verified?: boolean };
+  verified?: boolean;
   channels: string[];
   listingTier: ListingTier;
   lookingForCofounder?: boolean;

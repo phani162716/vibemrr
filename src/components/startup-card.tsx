@@ -44,6 +44,11 @@ export function StartupCard({ startup }: { startup: Startup }) {
                   For sale
                 </span>
               )}
+              {startup.verified && (
+                <span className="rounded-full bg-emerald-400/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-300">
+                  Verified
+                </span>
+              )}
               {startup.isDemo && (
                 <span className="rounded-full bg-white/8 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-zinc-400">
                   Demo

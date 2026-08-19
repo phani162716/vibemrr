@@ -6,15 +6,15 @@ const SECTIONS: { title: string; qas: { q: string; a: string }[] }[] = [
     qas: [
       {
         q: "What is VibeMRR?",
-        a: "A verified-revenue database and acquisition marketplace for Indian SaaS, WhatsApp tools, and vibe-coded side projects. Founders connect Razorpay, Cashfree, PhonePe, PayU, Stripe, Dodo, or Lemon Squeezy. Buyers browse live rupee metrics instead of screenshots.",
+        a: "A public rupee revenue catalog and buy/sell board for Indian SaaS and vibe-coded products. Founders pull live totals from Razorpay, Cashfree, or Stripe. Buyers see those numbers instead of screenshots.",
       },
       {
         q: "How is this different from TrustMRR?",
-        a: "Same core idea — payment-provider-backed MRR — rebuilt for India. INR-first, UPI-native providers, GSTIN and entity type, WhatsApp as the default deal channel, listing prices in rupees, IST timestamps, and a 60-second demo-verify path so vibe coders can ship a public page before they wire a live key.",
+        a: "Same idea — payment-provider MRR — rebuilt for India: INR, Razorpay/Cashfree, GSTIN, WhatsApp deals. Listing is free.",
       },
       {
         q: "Is listing free?",
-        a: "Yes. Adding a startup to the database is ₹0. Marketplace plans are Starter ₹2,499, Growth ₹14,999, and Scale ₹39,999 — PPP-priced, not a copy of $29/$199/$499.",
+        a: "Yes. Everything is ₹0 this year: database page, for-sale listing, offers, WhatsApp. We will not charge until we say so publicly.",
       },
     ],
   },
@@ -23,11 +23,11 @@ const SECTIONS: { title: string; qas: { q: string; a: string }[] }[] = [
     qas: [
       {
         q: "What data do you pull?",
-        a: "Aggregates only: all-time revenue, last 30 days, MRR, active subscriptions, customer counts. No customer PII, no charge ability. Restricted / read-only keys.",
+        a: "Totals only: all-time captured revenue, last 30 days, MRR from active subscriptions, subscriber/customer counts. We do not store your Key Secret. We cannot refund or charge your customers from this flow.",
       },
       {
-        q: "Why demo-verify?",
-        a: "Indian indie hackers stall at 'paste a live Stripe key'. Demo-verify publishes a page in a minute so you can share it in WhatsApp groups. Swap the demo hash for a real Razorpay restricted key when you're ready — the URL stays the same.",
+        q: "What if I skip verification?",
+        a: "You can still list. The page is marked Unverified and revenue shows as ₹0 until you connect Razorpay, Cashfree, or Stripe. Buyers should not trust unverified numbers.",
       },
       {
         q: "Can I stay anonymous?",
@@ -44,7 +44,7 @@ const SECTIONS: { title: string; qas: { q: string; a: string }[] }[] = [
       },
       {
         q: "What is the marketplace fee?",
-        a: "2.5% of the closing price (cheaper than a 3% US broker cut). Escrow or CA fees sit with the parties.",
+        a: "None this year. Deals close on WhatsApp / NEFT between buyer and seller. VibeMRR does not take a cut until we announce otherwise.",
       },
       {
         q: "Do you generate Indian legal docs?",
