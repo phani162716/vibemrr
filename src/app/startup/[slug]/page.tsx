@@ -97,6 +97,16 @@ export default function StartupPage({ params }: { params: Promise<{ slug: string
             <Metric label="Profit margin" value={startup.profitMargin ? `${startup.profitMargin}%` : "—"} />
             <Metric label="Team" value={`${startup.teamSize} ${startup.teamSize === 1 ? "person" : "people"}`} />
             <Metric label="Funding" value={startup.funding} />
+            {startup.details?.hoursPerWeek != null && (
+              <Metric label="Hours / week" value={`${startup.details.hoursPerWeek} hrs`} />
+            )}
+            {startup.details?.monthlyCostInr != null && (
+              <Metric label="Monthly costs" value={money(startup.details.monthlyCostInr, currency)} />
+            )}
+            {startup.details?.churnPct != null && <Metric label="Churn" value={`${startup.details.churnPct}%`} />}
+            {startup.details?.trafficMonthly != null && (
+              <Metric label="Monthly visits" value={startup.details.trafficMonthly.toLocaleString("en-IN")} />
+            )}
           </div>
 
           <div className="mt-4 flex items-center gap-2 text-xs text-zinc-500">
@@ -109,11 +119,21 @@ export default function StartupPage({ params }: { params: Promise<{ slug: string
           <section className="mt-10">
             <h2 className="text-lg font-semibold">Startup insights</h2>
             <dl className="mt-4 space-y-4 text-sm">
-              <Insight k="Value proposition" v={startup.valueProp} />
-              <Insight k="Problem solved" v={startup.problem} />
+              {startup.valueProp && <Insight k="Value proposition" v={startup.valueProp} />}
+              {startup.problem && <Insight k="Problem solved" v={startup.problem} />}
               <Insight k="Audience" v={`${startup.audience} · ~${startup.users ?? startup.customers ?? "—"} users`} />
-              <Insight k="Pricing" v={startup.pricing} />
+              {startup.pricing && <Insight k="Pricing" v={startup.pricing} />}
               <Insight k="Entity" v={`${company?.label ?? startup.companyType}${startup.gstin ? ` · GSTIN ${startup.gstin}` : ""}`} />
+              {startup.details?.revenueMix && <Insight k="Revenue mix" v={startup.details.revenueMix} />}
+              {startup.details?.assetsIncluded && <Insight k="What's included" v={startup.details.assetsIncluded} />}
+              {startup.details?.whySelling && <Insight k="Why selling" v={startup.details.whySelling} />}
+              {startup.details?.handoverWeeks != null && (
+                <Insight k="Handover" v={`${startup.details.handoverWeeks} weeks`} />
+              )}
+              {startup.details?.competitors && <Insight k="Competitors" v={startup.details.competitors} />}
+              {startup.details?.biggestRisk && <Insight k="Biggest risk" v={startup.details.biggestRisk} />}
+              {startup.details?.githubUrl && <Insight k="GitHub" v={startup.details.githubUrl} />}
+              {startup.lookingForCofounder && <Insight k="Open to" v="Co-founder / operator, not only a full sale" />}
               {startup.additionalInfo && <Insight k="Additional info" v={startup.additionalInfo} />}
             </dl>
           </section>

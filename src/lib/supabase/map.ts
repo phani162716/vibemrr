@@ -1,4 +1,4 @@
-import type { Offer, Startup } from "@/lib/types";
+import type { Offer, Startup, StartupDetails } from "@/lib/types";
 
 export type StartupRow = {
   id?: string;
@@ -43,7 +43,7 @@ export type StartupRow = {
   problem: string | null;
   additional_info: string | null;
   seller_message: string | null;
-  tech: { frontend?: string[]; backend?: string[]; verified?: boolean } | null;
+  tech: { frontend?: string[]; backend?: string[]; verified?: boolean; details?: StartupDetails } | null;
   channels: string[] | null;
   listing_tier: string | null;
   looking_for_cofounder: boolean | null;
@@ -104,7 +104,9 @@ export function rowToStartup(row: StartupRow): Startup {
       frontend: row.tech?.frontend ?? [],
       backend: row.tech?.backend ?? [],
       verified: Boolean(row.tech?.verified),
+      details: row.tech?.details,
     },
+    details: row.tech?.details,
     verified: Boolean(row.tech?.verified),
     channels: row.channels ?? [],
     listingTier: (row.listing_tier as Startup["listingTier"]) ?? "free",
@@ -160,7 +162,7 @@ export function startupToRow(s: Startup, ownerId: string, ownerEmail: string) {
     problem: s.problem,
     additional_info: s.additionalInfo ?? null,
     seller_message: s.sellerMessage ?? null,
-    tech: { ...s.tech, verified: Boolean(s.verified) },
+    tech: { ...s.tech, verified: Boolean(s.verified), details: s.details },
     channels: s.channels,
     listing_tier: s.listingTier,
     looking_for_cofounder: Boolean(s.lookingForCofounder),

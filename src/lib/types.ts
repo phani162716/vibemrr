@@ -27,6 +27,20 @@ export type ListingTier = "free" | "starter" | "growth" | "scale";
 
 export type Audience = "B2B" | "B2C" | "B2B2C";
 
+export interface StartupDetails {
+  hoursPerWeek?: number;
+  monthlyCostInr?: number;
+  assetsIncluded?: string;
+  whySelling?: string;
+  churnPct?: number;
+  trafficMonthly?: number;
+  githubUrl?: string;
+  handoverWeeks?: number;
+  biggestRisk?: string;
+  competitors?: string;
+  revenueMix?: string;
+}
+
 export interface Founder {
   name: string;
   handle: string;
@@ -72,7 +86,8 @@ export interface Startup {
   problem: string;
   additionalInfo?: string;
   sellerMessage?: string;
-  tech: { frontend: string[]; backend: string[]; verified?: boolean };
+  tech: { frontend: string[]; backend: string[]; verified?: boolean; details?: StartupDetails };
+  details?: StartupDetails;
   verified?: boolean;
   channels: string[];
   listingTier: ListingTier;
