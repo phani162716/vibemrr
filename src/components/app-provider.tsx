@@ -13,6 +13,7 @@ import type {
   BidMessage,
   BidStatus,
   Currency,
+  DealStatus,
   Notice,
   Order,
   Product,
@@ -64,6 +65,7 @@ type Ctx = {
   orders: Order[];
   checkout: (product: Product, amountInr: number, bidId?: string) => Promise<Order>;
   markPaid: (orderId: string) => Promise<void>;
+  markDeal: (orderId: string, status: DealStatus) => Promise<void>;
   saveHandover: (orderId: string, handover: Record<string, string>) => Promise<void>;
   reviews: Review[];
   addReview: (productId: string, orderId: string, rating: number, comment: string) => Promise<void>;
@@ -128,6 +130,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       interested: 0,
       bidCount: 0,
       reviewCount: 0,
+      sellerWhatsapp: row.seller_whatsapp ? String(row.seller_whatsapp) : undefined,
     }));
     setProducts(mergeProducts(remote, localProducts().filter((p) => !p.isDemo)));
   }, []);
@@ -216,7 +219,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setProducts(withViews);
     setBids(localBids());
     setInterested(localInterests());
-    setOrders(localOrders());
+    setOrders(
+      localOrders().map((o) => ({
+        ...o,
+        dealStatus: o.dealStatus || (o.paymentStatus === "paid" ? "completed" : "accepted"),
+        acceptedAt: o.acceptedAt || o.createdAt,
+      }))
+    );
     setReviews(localReviews());
     setNotices(localNotices());
 
@@ -380,6 +389,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           website_url: p.websiteUrl ?? null,
           status: p.status,
           is_demo: false,
+          seller_whatsapp: p.sellerWhatsapp ?? session.whatsapp ?? null,
           updated_at: new Date().toISOString(),
         });
       }
@@ -577,7 +587,61 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           message: row.message,
           kind,
         });
-        if (kind === "counter" && current) {
+      if (kind === "accept" && current) {
+        const product = products.find((p) => p.slug === current.productSlug);
+        const now = new Date().toISOString();
+        const deal: Order = {
+          id: uid(),
+          productId: current.productId,
+          productName: current.productName,
+          productSlug: current.productSlug,
+          buyerId: current.buyerId,
+          buyerName: current.buyerName,
+          buyerEmail: current.buyerEmail,
+          sellerId: current.sellerId || session.id,
+          sellerName: session.name,
+          sellerWhatsapp: session.whatsapp || product?.sellerWhatsapp,
+          bidId: current.id,
+          amountInr: amountInr ?? current.amountInr,
+          paymentStatus: "pending",
+          dealStatus: "accepted",
+          acceptedAt: now,
+          handover: {},
+          createdAt: now,
+        };
+        setOrders((cur) => {
+          const next = [deal, ...cur];
+          localSaveOrders(next);
+          return next;
+        });
+        if (current.buyerId) {
+          notify({
+            userId: current.buyerId,
+            title: "Offer accepted",
+            body: `Your offer on ${current.productName} was accepted. Open the deal to continue on WhatsApp.`,
+            href: `/checkout/${deal.id}`,
+          });
+        }
+        if (persist === "sb") {
+          await createClient().from("orders").insert({
+            id: deal.id,
+            product_id: current.productId.match(/^[0-9a-f-]{36}$/i) ? current.productId : null,
+            product_name: deal.productName,
+            buyer_id: deal.buyerId ?? null,
+            seller_id: deal.sellerId ?? null,
+            bid_id: deal.bidId ?? null,
+            amount_inr: deal.amountInr,
+            payment_status: "pending",
+            deal_status: "accepted",
+            accepted_at: now,
+            seller_whatsapp: deal.sellerWhatsapp ?? null,
+            buyer_name: deal.buyerName ?? null,
+            seller_name: deal.sellerName ?? null,
+            buyer_email: deal.buyerEmail ?? null,
+          });
+        }
+      }
+      if (kind === "counter" && current) {
           const sellerActing = session.id === current.sellerId;
           const otherId = sellerActing ? current.buyerId : current.sellerId;
           if (otherId) {
@@ -591,59 +655,107 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         }
       }
     },
-    [session, bids, persist, notify]
+    [session, bids, persist, notify, products]
   );
 
   const checkout = useCallback(
     async (product: Product, amountInr: number, bidId?: string) => {
       if (!session) throw new Error("Sign in to buy");
+      const now = new Date().toISOString();
       const order: Order = {
         id: uid(),
         productId: product.id,
         productName: product.name,
         productSlug: product.slug,
         buyerId: session.id,
+        buyerName: session.name,
+        buyerEmail: session.email,
         sellerId: product.ownerId,
+        sellerName: product.ownerName,
+        sellerWhatsapp: product.sellerWhatsapp,
         bidId,
         amountInr,
         paymentStatus: "pending",
+        dealStatus: "accepted",
+        acceptedAt: now,
         handover: {},
-        createdAt: new Date().toISOString(),
+        createdAt: now,
       };
       setOrders((cur) => {
         const next = [order, ...cur];
         localSaveOrders(next);
         return next;
       });
+      if (persist === "sb") {
+        await createClient().from("orders").insert({
+          id: order.id,
+          product_id: product.id.match(/^[0-9a-f-]{36}$/i) ? product.id : null,
+          product_name: order.productName,
+          buyer_id: order.buyerId ?? null,
+          seller_id: order.sellerId ?? null,
+          bid_id: bidId ?? null,
+          amount_inr: amountInr,
+          payment_status: "pending",
+          deal_status: "accepted",
+          accepted_at: now,
+          seller_whatsapp: order.sellerWhatsapp ?? null,
+          buyer_name: order.buyerName ?? null,
+          seller_name: order.sellerName ?? null,
+          buyer_email: order.buyerEmail ?? null,
+        });
+      }
+      if (product.ownerId && product.ownerId !== session.id) {
+        notify({
+          userId: product.ownerId,
+          title: "Buy now — deal recorded",
+          body: `${session.name} matched your asking price on ${product.name}.`,
+          href: `/checkout/${order.id}`,
+        });
+      }
       return order;
     },
-    [session]
+    [session, persist, notify]
   );
 
-  const markPaid = useCallback(
-    async (orderId: string) => {
+  const markDeal = useCallback(async (orderId: string, status: DealStatus) => {
+    setOrders((cur) => {
+      const next = cur.map((o) =>
+        o.id === orderId
+          ? {
+              ...o,
+              dealStatus: status,
+              paymentStatus: status === "completed" ? ("paid" as const) : o.paymentStatus,
+            }
+          : o
+      );
+      localSaveOrders(next);
+      return next;
+    });
+    if (status === "completed") {
       setOrders((cur) => {
-        const next = cur.map((o) => (o.id === orderId ? { ...o, paymentStatus: "paid" as const } : o));
-        localSaveOrders(next);
-        const paid = next.find((o) => o.id === orderId);
+        const paid = cur.find((o) => o.id === orderId);
         if (paid?.productSlug) {
-          setProducts((ps) =>
-            ps.map((p) => (p.slug === paid.productSlug ? { ...p, status: "sold" as const } : p))
-          );
+          setProducts((ps) => ps.map((p) => (p.slug === paid.productSlug ? { ...p, status: "sold" as const } : p)));
         }
-        return next;
+        if (paid?.bidId) {
+          setBids((bs) => {
+            const next = bs.map((b) => (b.id === paid.bidId ? { ...b, status: "purchased" as const } : b));
+            localSaveBids(next);
+            return next;
+          });
+        }
+        return cur;
       });
-      setBids((cur) => {
-        const next = cur.map((b) => {
-          const o = orders.find((x) => x.id === orderId);
-          return o && b.id === o.bidId ? { ...b, status: "purchased" as const } : b;
-        });
-        localSaveBids(next);
-        return next;
-      });
-    },
-    [orders]
-  );
+    }
+    if (persist === "sb") {
+      await createClient()
+        .from("orders")
+        .update({ deal_status: status, payment_status: status === "completed" ? "paid" : "pending" })
+        .eq("id", orderId);
+    }
+  }, [persist]);
+
+  const markPaid = useCallback(async (orderId: string) => markDeal(orderId, "completed"), [markDeal]);
 
   const saveHandover = useCallback(async (orderId: string, handover: Record<string, string>) => {
     setOrders((cur) => {
@@ -706,6 +818,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       orders,
       checkout,
       markPaid,
+      markDeal,
       saveHandover,
       reviews,
       addReview,
@@ -734,6 +847,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       orders,
       checkout,
       markPaid,
+      markDeal,
       saveHandover,
       reviews,
       addReview,

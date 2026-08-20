@@ -55,6 +55,8 @@ export interface Product {
   bidCount: number;
   rating?: number;
   reviewCount: number;
+  /** Private. Never shown on the public product page. */
+  sellerWhatsapp?: string;
 }
 
 export interface Bid {
@@ -83,16 +85,24 @@ export interface BidMessage {
   createdAt: string;
 }
 
+export type DealStatus = "accepted" | "completed" | "cancelled";
+
 export interface Order {
   id: string;
   productId: string;
   productName: string;
   productSlug?: string;
   buyerId?: string;
+  buyerName?: string;
+  buyerEmail?: string;
   sellerId?: string;
+  sellerName?: string;
+  sellerWhatsapp?: string;
   bidId?: string;
   amountInr: number;
   paymentStatus: "pending" | "paid" | "failed";
+  dealStatus: DealStatus;
+  acceptedAt: string;
   handover: Record<string, string>;
   createdAt: string;
 }

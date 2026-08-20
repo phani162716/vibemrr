@@ -289,19 +289,17 @@ function DashboardInner() {
                   </button>
                 </div>
               )}
-              {!seller && b.status === "accepted" && (
-                <button
-                  type="button"
-                  onClick={async () => {
-                    const p = products.find((x) => x.slug === b.productSlug);
-                    if (!p) return;
-                    const o = await checkout(p, b.amountInr, b.id);
-                    router.push(`/checkout/${o.id}`);
-                  }}
-                  className="mt-3 text-xs text-indigo-2"
+              {b.status === "accepted" && (
+                <Link
+                  href={
+                    (seller ? sales : myOrders).find((o) => o.bidId === b.id)
+                      ? `/checkout/${(seller ? sales : myOrders).find((o) => o.bidId === b.id)!.id}`
+                      : "/dashboard?tab=purchases"
+                  }
+                  className="mt-3 inline-block text-xs font-medium text-accent"
                 >
-                  Go to checkout
-                </button>
+                  Open deal summary → WhatsApp
+                </Link>
               )}
             </div>
           ))}
@@ -331,7 +329,7 @@ function DashboardInner() {
           )}
           {(tab === "sales" ? sales : myOrders).map((o) => (
             <Link key={o.id} href={`/checkout/${o.id}`} className="block rounded-xl border border-border p-4 text-sm">
-              {o.productName} · {moneyFull(o.amountInr, currency)} · {o.paymentStatus}
+              {o.productName} · {moneyFull(o.amountInr, currency)} · {o.dealStatus}
             </Link>
           ))}
         </div>

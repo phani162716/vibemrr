@@ -21,6 +21,7 @@ export default function AddProductPage() {
   const [demoUrl, setDemo] = useState("");
   const [websiteUrl, setSite] = useState("");
   const [images, setImages] = useState("");
+  const [whatsapp, setWhatsapp] = useState(session?.whatsapp ?? "");
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -67,6 +68,7 @@ export default function AddProductPage() {
       interested: 0,
       bidCount: 0,
       reviewCount: 0,
+      sellerWhatsapp: whatsapp || session?.whatsapp,
     };
     try {
       await upsertProduct(product);
@@ -122,6 +124,16 @@ export default function AddProductPage() {
         </div>
         <Field label="Tags (comma)" value={tags} onChange={setTags} placeholder="AI, Real Estate" />
         <Field label="Asking price (₹)" value={asking} onChange={setAsking} type="number" required />
+        <Field
+          label="WhatsApp (private)"
+          value={whatsapp}
+          onChange={setWhatsapp}
+          placeholder="91XXXXXXXXXX"
+        />
+        <p className="text-xs text-muted">
+          Never shown on the public listing. Buyers only get a WhatsApp link after you accept an offer
+          or they buy at asking price.
+        </p>
         <Field label="Demo URL" value={demoUrl} onChange={setDemo} placeholder="https://" />
         <Field label="Live website (optional)" value={websiteUrl} onChange={setSite} placeholder="https://" />
         <label className="block text-xs text-muted">

@@ -4,20 +4,23 @@ import { use, useState } from "react";
 import Link from "next/link";
 import { useApp } from "@/components/app-provider";
 import { moneyFull } from "@/lib/format";
+import { dealWhatsAppMessage, whatsappHref } from "@/lib/whatsapp";
 
-export default function CheckoutPage({ params }: { params: Promise<{ id: string }> }) {
+export default function DealPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const { orders, session, currency, markPaid, saveHandover, addReview } = useApp();
+  const { orders, session, currency, markDeal, addReview } = useApp();
   const [stars, setStars] = useState(5);
   const [comment, setComment] = useState("");
+  const [reviewed, setReviewed] = useState(false);
   const order = orders.find((o) => o.id === id);
-  const [handover, setHandover] = useState(order?.handover ?? {});
-  const isSeller = session && order && session.id === order.sellerId;
+  const isParty = session && order && (session.id === order.buyerId || session.id === order.sellerId);
+  const isBuyer = session && order && session.id === order.buyerId;
 
-  if (!order) {
+  if (!order || !isParty) {
     return (
       <div className="mx-auto max-w-lg px-4 py-24 text-center">
-        <h1 className="text-2xl font-semibold">Order not found</h1>
+        <h1 className="text-2xl font-semibold">Deal not found</h1>
+        <p className="mt-2 text-sm text-muted">Deals are private to the buyer and seller.</p>
         <Link href="/dashboard" className="mt-4 inline-block text-indigo-2">
           Dashboard
         </Link>
@@ -25,79 +28,97 @@ export default function CheckoutPage({ params }: { params: Promise<{ id: string 
     );
   }
 
+  const msg = dealWhatsAppMessage(order.productName, order.amountInr);
+  const wa = order.sellerWhatsapp ? whatsappHref(order.sellerWhatsapp, msg) : null;
+  const open = order.dealStatus === "accepted";
+
   return (
     <div className="mx-auto max-w-lg px-4 py-12">
-      <h1 className="font-serif text-4xl">Checkout</h1>
-      <p className="mt-2 text-sm text-muted">{order.productName}</p>
-      <p className="mt-4 text-3xl font-semibold">{moneyFull(order.amountInr, currency)}</p>
-      <p className="mt-1 text-xs text-muted">Status: {order.paymentStatus}</p>
+      <p className="text-xs font-semibold uppercase tracking-wider text-indigo-2">Deal summary</p>
+      <h1 className="font-serif mt-1 text-4xl">{order.productName}</h1>
+      <p className="mt-4 text-3xl font-semibold text-indigo">{moneyFull(order.amountInr, currency)}</p>
+      <dl className="mt-6 space-y-2 text-sm">
+        <Row k="Buyer" v={order.buyerName || "Buyer"} />
+        <Row k="Seller" v={order.sellerName || "Seller"} />
+        <Row k="Agreed price" v={moneyFull(order.amountInr, currency)} />
+        <Row k="Accepted" v={new Date(order.acceptedAt).toLocaleString("en-IN")} />
+        <Row k="Status" v={order.dealStatus} />
+      </dl>
       <p className="mt-4 text-sm text-muted">
-        Payment is modular. Razorpay / Stripe can plug in later. For this MVP, mark the transfer as
-        paid after you send UPI / NEFT off-platform.
+        Year one: complete payment and handover directly. Vibers recorded this deal before any WhatsApp
+        chat. The seller number is not public.
       </p>
-      {order.paymentStatus !== "paid" && (
-        <button
-          onClick={() => void markPaid(order.id)}
-          className="mt-6 w-full rounded-xl bg-indigo py-2.5 text-sm font-semibold text-white"
-        >
-          Mark payment successful
-        </button>
-      )}
-      {order.paymentStatus === "paid" && (
-        <div className="mt-8 space-y-3 rounded-2xl border border-border p-4">
-          <h2 className="font-semibold">Private handover</h2>
-          <p className="text-xs text-muted">Never shown on the public listing. Only buyer and seller.</p>
-          {["github", "domain", "docs", "notes"].map((k) => (
-            <label key={k} className="block text-xs text-muted">
-              {k}
-              <input
-                disabled={!isSeller}
-                value={handover[k] ?? ""}
-                onChange={(e) => setHandover({ ...handover, [k]: e.target.value })}
-                className="mt-1 w-full rounded-lg border border-border bg-white px-3 py-2 text-sm"
-              />
-            </label>
-          ))}
-          {isSeller && (
-            <button
-              onClick={() => void saveHandover(order.id, handover)}
-              className="rounded-lg border border-border px-3 py-1.5 text-sm"
-            >
-              Save handover
-            </button>
+
+      {open && (
+        <div className="mt-6 space-y-3">
+          {wa ? (
+            <a href={wa} target="_blank" rel="noreferrer" className="btn-accent flex w-full">
+              Continue on WhatsApp
+            </a>
+          ) : (
+            <p className="rounded-xl border border-border bg-white p-3 text-sm text-muted">
+              Seller hasn&apos;t added a WhatsApp number in Settings yet. Ask them to add it, then
+              refresh this page.
+            </p>
           )}
-          {!isSeller && (
+          <p className="text-xs text-muted">
+            Prefilled message: “{msg}”
+          </p>
+          <div className="flex gap-2">
+            <button type="button" onClick={() => void markDeal(order.id, "completed")} className="btn-primary flex-1">
+              Mark deal completed
+            </button>
+            <button
+              type="button"
+              onClick={() => void markDeal(order.id, "cancelled")}
+              className="btn-ghost flex-1 text-danger"
+            >
+              Deal cancelled
+            </button>
+          </div>
+        </div>
+      )}
+
+      {order.dealStatus === "completed" && (
+        <div className="mt-8 space-y-3 rounded-2xl border border-success/30 bg-success/10 p-4">
+          <p className="font-medium text-success">Deal completed</p>
+          {isBuyer && !reviewed && (
             <form
-              className="mt-4 space-y-2"
+              className="space-y-2"
               onSubmit={(e) => {
                 e.preventDefault();
                 void addReview(order.productId, order.id, stars, comment);
-                alert("Review saved");
+                setReviewed(true);
               }}
             >
-              <p className="text-xs font-medium text-muted">Leave a verified review</p>
-              <select
-                value={stars}
-                onChange={(e) => setStars(Number(e.target.value))}
-                className="rounded-lg border border-border bg-white px-2 py-1 text-sm"
-              >
+              <p className="text-xs font-medium">Leave a review</p>
+              <select value={stars} onChange={(e) => setStars(Number(e.target.value))} className="field">
                 {[1, 2, 3, 4, 5].map((n) => (
                   <option key={n} value={n}>
                     {n} stars
                   </option>
                 ))}
               </select>
-              <input
-                value={comment}
-                onChange={(e) => setComment(e.target.value)}
-                placeholder="Short review"
-                className="w-full rounded-lg border border-border bg-white px-3 py-2 text-sm"
-              />
-              <button className="rounded-lg bg-[#F8F9FB] px-3 py-1.5 text-sm">Submit review</button>
+              <input value={comment} onChange={(e) => setComment(e.target.value)} placeholder="Short review" className="field" />
+              <button className="btn-primary">Submit review</button>
             </form>
           )}
+          {reviewed && <p className="text-sm text-success">Review saved.</p>}
         </div>
       )}
+
+      {order.dealStatus === "cancelled" && (
+        <p className="mt-6 text-sm text-danger">This deal was cancelled.</p>
+      )}
+    </div>
+  );
+}
+
+function Row({ k, v }: { k: string; v: string }) {
+  return (
+    <div className="flex justify-between gap-4 border-b border-border py-2">
+      <dt className="text-muted">{k}</dt>
+      <dd className="font-medium">{v}</dd>
     </div>
   );
 }
