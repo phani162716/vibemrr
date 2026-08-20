@@ -13,6 +13,7 @@ export default function SettingsPage() {
   const [whatsapp, setWhatsapp] = useState(session?.whatsapp ?? "");
   const [bio, setBio] = useState(session?.bio ?? "");
   const [saved, setSaved] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   if (!session) {
     return (
@@ -32,7 +33,15 @@ export default function SettingsPage() {
         className="mt-8 space-y-3"
         onSubmit={(e) => {
           e.preventDefault();
-          void updateProfile({ name, handle, whatsapp, bio }).then(() => setSaved(true));
+          setError(null);
+          const digits = whatsapp.replace(/\D/g, "");
+          if (digits.length < 10) {
+            setError("Enter WhatsApp with country code, e.g. 91XXXXXXXXXX");
+            return;
+          }
+          void updateProfile({ name, handle, whatsapp: digits, bio })
+            .then(() => setSaved(true))
+            .catch((err) => setError(err instanceof Error ? err.message : "Could not save"));
         }}
       >
         <label className="block text-xs text-muted">
@@ -70,7 +79,8 @@ export default function SettingsPage() {
           </select>
         </label>
         <button className="w-full rounded-xl bg-indigo py-2.5 text-sm font-semibold text-white">Save profile</button>
-        {saved && <p className="text-xs text-success">Saved</p>}
+        {error && <p className="text-sm text-danger">{error}</p>}
+        {saved && <p className="text-xs text-success">Saved to your account. It will still be there after logout.</p>}
       </form>
       <button
         type="button"

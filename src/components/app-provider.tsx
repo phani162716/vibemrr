@@ -272,6 +272,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           };
           setSession(next);
           localStorage.setItem("vibemrr.session", JSON.stringify(next));
+          if (next.whatsapp) {
+            await sb.from("profiles").upsert({
+              id: user.id,
+              email: next.email,
+              name: next.name,
+              whatsapp: next.whatsapp,
+              updated_at: new Date().toISOString(),
+            });
+          }
         }
         await refreshSb().catch(() => undefined);
         await loadRemoteBids().catch(() => undefined);
@@ -282,20 +291,35 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const { data: sub } = sb.auth.onAuthStateChange((_e, authSession) => {
       const user = authSession?.user;
       if (!user) return;
-      setSession((cur) => {
-        const next: Session = {
-          ...cur,
-          id: user.id,
-          email: user.email ?? cur?.email ?? "",
-          name:
-            cur?.name ||
-            (typeof user.user_metadata?.full_name === "string" ? user.user_metadata.full_name : "") ||
-            user.email?.split("@")[0] ||
-            "User",
-        };
-        localStorage.setItem("vibemrr.session", JSON.stringify(next));
-        return next;
-      });
+      const metaWa =
+        typeof user.user_metadata?.whatsapp === "string" ? user.user_metadata.whatsapp : undefined;
+      void sb
+        .from("profiles")
+        .select("name, whatsapp, avatar_url, primary_role, handle, bio")
+        .eq("id", user.id)
+        .maybeSingle()
+        .then(({ data: profile }) => {
+          setSession((cur) => {
+            const next: Session = {
+              ...cur,
+              id: user.id,
+              email: user.email ?? cur?.email ?? "",
+              name:
+                profile?.name ||
+                cur?.name ||
+                (typeof user.user_metadata?.full_name === "string" ? user.user_metadata.full_name : "") ||
+                user.email?.split("@")[0] ||
+                "User",
+              whatsapp: profile?.whatsapp || cur?.whatsapp || metaWa,
+              avatarUrl: profile?.avatar_url || cur?.avatarUrl,
+              role: (profile?.primary_role as Role) || cur?.role,
+              handle: profile?.handle || cur?.handle,
+              bio: profile?.bio || cur?.bio,
+            };
+            localStorage.setItem("vibemrr.session", JSON.stringify(next));
+            return next;
+          });
+        });
     });
     const tick = window.setInterval(() => {
       loadRemoteBids().catch(() => undefined);
@@ -346,11 +370,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const updateProfile = useCallback(
     async (patch: Partial<Session>) => {
       if (!session) return;
-      const next = { ...session, ...patch, handle: (patch.handle || session.handle || session.email.split("@")[0]).replace("@", "") };
+      const wa = (patch.whatsapp ?? session.whatsapp ?? "").replace(/\D/g, "");
+      const next = {
+        ...session,
+        ...patch,
+        whatsapp: wa || session.whatsapp,
+        handle: (patch.handle || session.handle || session.email.split("@")[0]).replace("@", ""),
+      };
       setSession(next);
       localStorage.setItem("vibemrr.session", JSON.stringify(next));
       if (session.id && isSupabaseConfigured()) {
-        await createClient().from("profiles").upsert({
+        const sb = createClient();
+        const { error } = await sb.from("profiles").upsert({
           id: session.id,
           email: next.email,
           name: next.name,
@@ -360,6 +391,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           primary_role: next.role ?? null,
           updated_at: new Date().toISOString(),
         });
+        if (error) throw new Error(error.message);
+        const { error: metaErr } = await sb.auth.updateUser({
+          data: { full_name: next.name, whatsapp: next.whatsapp },
+        });
+        if (metaErr) throw new Error(metaErr.message);
       }
     },
     [session]
