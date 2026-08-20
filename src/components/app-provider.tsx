@@ -698,6 +698,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           ownerName: product?.ownerName,
           slug: current.productSlug,
           productId: current.productId || product?.id,
+          productName: current.productName,
         });
         const sellerWa = sellerIsActor ? own || sellerContact.whatsapp : sellerContact.whatsapp;
         if (!sellerWa) {
@@ -779,6 +780,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         ownerName: product.ownerName,
         slug: product.slug,
         productId: product.id,
+        productName: product.name,
       });
       const now = new Date().toISOString();
       const order: Order = {

@@ -35,34 +35,43 @@ export default function DealPage({ params }: { params: Promise<{ id: string }> }
   const open = order?.dealStatus === "accepted";
 
   useEffect(() => {
-    setPeerOverride(undefined);
-    setLooked(false);
-  }, [id]);
-
-  useEffect(() => {
     if (!order || !session || (!isBuyer && !isSeller)) return;
-    let cancelled = false;
+    let alive = true;
+    setLooked(false);
     const run = isBuyer
       ? lookupSellerContact({
           ownerId: order.sellerId,
           ownerName: order.sellerName,
           slug: order.productSlug,
           productId: order.productId,
+          productName: order.productName,
         }).then((s) => s.whatsapp)
       : lookupProfileWhatsapp(order.buyerId);
-    run
+    void run
       .then((n) => {
-        if (cancelled) return;
+        if (!alive) return;
         if (n) setPeerOverride(n);
         setLooked(true);
       })
       .catch(() => {
-        if (!cancelled) setLooked(true);
+        if (alive) setLooked(true);
       });
     return () => {
-      cancelled = true;
+      alive = false;
     };
-  }, [order?.id, order?.sellerId, order?.buyerId, order?.productSlug, order?.productId, order?.sellerName, isBuyer, isSeller, session?.id]);
+  }, [
+    id,
+    order?.id,
+    order?.sellerId,
+    order?.buyerId,
+    order?.productSlug,
+    order?.productId,
+    order?.productName,
+    order?.sellerName,
+    isBuyer,
+    isSeller,
+    session?.id,
+  ]);
 
   useEffect(() => {
     if (!order || !open || !wa || !isBuyer) return;

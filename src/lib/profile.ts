@@ -5,7 +5,18 @@ import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { validWhatsApp } from "@/lib/whatsapp";
 
 export async function lookupProfileWhatsapp(userId?: string | null): Promise<string | undefined> {
-  if (!userId || !isSupabaseConfigured()) return undefined;
+  if (!userId) return undefined;
+  try {
+    const res = await fetch(`/api/seller-contact?userId=${encodeURIComponent(userId)}`, { cache: "no-store" });
+    if (res.ok) {
+      const data = (await res.json()) as { whatsapp?: string | null };
+      const wa = validWhatsApp(data.whatsapp);
+      if (wa) return wa;
+    }
+  } catch {
+    /* fall through */
+  }
+  if (!isSupabaseConfigured()) return undefined;
   try {
     const sb = createClient();
     const { data, error } = await sb.from("profiles").select("whatsapp").eq("id", userId).maybeSingle();
@@ -21,22 +32,46 @@ export async function lookupSellerContact(opts: {
   ownerName?: string | null;
   slug?: string | null;
   productId?: string | null;
+  productName?: string | null;
 }): Promise<{ whatsapp?: string; ownerId?: string; ownerName?: string }> {
   const fallbackName = opts.ownerName || undefined;
+  const params = new URLSearchParams();
+  if (opts.slug) params.set("slug", opts.slug);
+  if (opts.productId) params.set("id", opts.productId);
+  if (opts.ownerId) params.set("ownerId", opts.ownerId);
+  if (opts.ownerName) params.set("ownerName", opts.ownerName);
+  if (opts.productName) params.set("productName", opts.productName);
+  try {
+    const res = await fetch(`/api/seller-contact?${params.toString()}`, { cache: "no-store" });
+    if (res.ok) {
+      const data = (await res.json()) as { whatsapp?: string | null; ownerId?: string | null; ownerName?: string | null };
+      const wa = validWhatsApp(data.whatsapp);
+      if (wa) {
+        return {
+          whatsapp: wa,
+          ownerId: data.ownerId || opts.ownerId || undefined,
+          ownerName: data.ownerName || fallbackName,
+        };
+      }
+    }
+  } catch {
+    /* fall through to browser client */
+  }
   if (!isSupabaseConfigured()) {
     return { ownerId: opts.ownerId || undefined, ownerName: fallbackName };
   }
   try {
     const sb = createClient();
-    const productId = opts.productId && /^[0-9a-f-]{36}$/i.test(opts.productId) ? opts.productId : null;
-
     let ownerId = opts.ownerId || undefined;
     let ownerName = fallbackName;
 
-    if (opts.slug || productId) {
-      let q = sb.from("products").select("owner_id, owner_name");
-      q = productId ? q.eq("id", productId) : q.eq("slug", opts.slug!);
-      const { data: prod } = await q.maybeSingle();
+    if (opts.slug) {
+      const { data: prod } = await sb.from("products").select("owner_id, owner_name").eq("slug", opts.slug).maybeSingle();
+      if (prod?.owner_id) ownerId = String(prod.owner_id);
+      if (prod?.owner_name) ownerName = String(prod.owner_name);
+    }
+    if (!ownerId && opts.productId && /^[0-9a-f-]{36}$/i.test(opts.productId)) {
+      const { data: prod } = await sb.from("products").select("owner_id, owner_name").eq("id", opts.productId).maybeSingle();
       if (prod?.owner_id) ownerId = String(prod.owner_id);
       if (prod?.owner_name) ownerName = String(prod.owner_name);
     }
