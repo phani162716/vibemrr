@@ -68,12 +68,22 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
       return;
     }
     if (!product) return;
-    if (!product.sellerWhatsapp) {
-      setErr("Seller has no WhatsApp on file. They must add it in Settings.");
+    if (!session.whatsapp) {
+      setErr("Add your WhatsApp in Settings first.");
+      router.push("/settings");
       return;
     }
-    const order = await checkout(product, product.askingInr);
-    router.push(`/checkout/${order.id}?wa=1`);
+    try {
+      const order = await checkout(product, product.askingInr);
+      const { buyerToSellerMessage, whatsappHref } = await import("@/lib/whatsapp");
+      const href = order.sellerWhatsapp
+        ? whatsappHref(order.sellerWhatsapp, buyerToSellerMessage(order.productName, order.amountInr))
+        : null;
+      if (href) window.open(href, "_blank");
+      router.push(`/checkout/${order.id}`);
+    } catch (error) {
+      setErr(error instanceof Error ? error.message : "Could not start deal");
+    }
   }
 
   return (

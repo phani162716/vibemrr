@@ -1,10 +1,11 @@
 "use client";
 
-import { use, useEffect, useState } from "react";
+import { use, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { useApp } from "@/components/app-provider";
 import { moneyFull } from "@/lib/format";
-import { dealWhatsAppMessage, whatsappHref } from "@/lib/whatsapp";
+import { buyerToSellerMessage, sellerToBuyerMessage, whatsappHref } from "@/lib/whatsapp";
+import { useState } from "react";
 
 export default function DealPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -16,23 +17,30 @@ export default function DealPage({ params }: { params: Promise<{ id: string }> }
   const isBuyer = !!session && !!order && (session.id === order.buyerId || session.email === order.buyerEmail);
   const isSeller = !!session && !!order && session.id === order.sellerId;
   const isParty = isBuyer || isSeller;
-  const msg = order ? dealWhatsAppMessage(order.productName, order.amountInr) : "";
-  const wa = order?.sellerWhatsapp ? whatsappHref(order.sellerWhatsapp, msg) : null;
+
+  const peerPhone = isBuyer ? order?.sellerWhatsapp : order?.buyerWhatsapp;
+  const msg = order
+    ? isBuyer
+      ? buyerToSellerMessage(order.productName, order.amountInr)
+      : sellerToBuyerMessage(order.productName, order.amountInr)
+    : "";
+  const wa = peerPhone ? whatsappHref(peerPhone, msg) : null;
   const open = order?.dealStatus === "accepted";
 
   useEffect(() => {
-    if (!order || !open || !wa || !isBuyer) return;
-    const key = `wa-opened-${order.id}`;
+    if (!order || !open || !wa) return;
+    const key = `wa-opened-${order.id}-${isBuyer ? "b" : "s"}`;
     if (sessionStorage.getItem(key)) return;
     sessionStorage.setItem(key, "1");
-    window.location.assign(wa);
+    window.open(wa, "_blank");
   }, [order, open, wa, isBuyer]);
+
+  const who = useMemo(() => (isBuyer ? "seller" : "buyer"), [isBuyer]);
 
   if (!order || !session) {
     return (
       <div className="mx-auto max-w-lg px-4 py-24 text-center">
         <h1 className="text-2xl font-semibold">Deal not found</h1>
-        <p className="mt-2 text-sm text-muted">Sign in as the buyer or seller to view this deal.</p>
         <Link href="/dashboard" className="mt-4 inline-block text-indigo-2">
           Dashboard
         </Link>
@@ -64,21 +72,20 @@ export default function DealPage({ params }: { params: Promise<{ id: string }> }
         <Row k="Status" v={order.dealStatus} />
       </dl>
       <p className="mt-4 text-sm text-muted">
-        Deal is recorded on Vibers. Seller WhatsApp is not public. Chat opens only after accept or Buy now.
+        Numbers stay private until a deal is accepted. You chat with the other person, not your own number.
       </p>
 
       {open && (
         <div className="mt-6 space-y-3">
           {wa ? (
             <a href={wa} target="_blank" rel="noreferrer" className="btn-accent flex w-full">
-              Continue on WhatsApp
+              Continue on WhatsApp ({isBuyer ? "message seller" : "message buyer"})
             </a>
           ) : (
             <p className="rounded-xl border border-border bg-white p-3 text-sm text-muted">
-              Seller WhatsApp is missing. Seller: add it in Settings (91XXXXXXXXXX), then refresh.
+              The {who}&apos;s WhatsApp is missing. They should add it in Settings (91XXXXXXXXXX).
             </p>
           )}
-          {isBuyer && wa && <p className="text-xs text-muted">WhatsApp should open automatically with a prefilled message.</p>}
           <div className="flex gap-2">
             <button type="button" onClick={() => void markDeal(order.id, "completed")} className="btn-primary flex-1">
               Mark deal completed

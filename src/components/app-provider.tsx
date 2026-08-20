@@ -491,6 +491,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const placeBid = useCallback(
     async (product: Product, amountInr: number, message: string) => {
       if (!session) throw new Error("Sign in to bid");
+      if (!session.whatsapp) throw new Error("Add WhatsApp in Settings (91XXXXXXXXXX) before bidding.");
       const msg: BidMessage = {
         id: uid(),
         role: "buyer",
@@ -509,6 +510,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         buyerId: session.id,
         buyerName: session.name,
         buyerEmail: session.email,
+        buyerWhatsapp: session.whatsapp,
         sellerId: product.ownerId,
         amountInr,
         status: "pending",
@@ -656,6 +658,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           sellerId: current.sellerId || session.id,
           sellerName: sellerIsActor ? session.name : product?.ownerName,
           sellerWhatsapp: wa,
+          buyerWhatsapp: current.buyerWhatsapp,
           bidId: current.id,
           amountInr: amountInr ?? current.amountInr,
           paymentStatus: "pending",
@@ -690,6 +693,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             deal_status: "accepted",
             accepted_at: now,
             seller_whatsapp: deal.sellerWhatsapp ?? null,
+            buyer_whatsapp: deal.buyerWhatsapp ?? null,
             buyer_name: deal.buyerName ?? null,
             seller_name: deal.sellerName ?? null,
             buyer_email: deal.buyerEmail ?? null,
@@ -704,6 +708,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const checkout = useCallback(
     async (product: Product, amountInr: number, bidId?: string) => {
       if (!session) throw new Error("Sign in to buy");
+      if (!session.whatsapp) throw new Error("Add WhatsApp in Settings (91XXXXXXXXXX) before buying.");
       const now = new Date().toISOString();
       const order: Order = {
         id: uid(),
@@ -713,6 +718,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         buyerId: session.id,
         buyerName: session.name,
         buyerEmail: session.email,
+        buyerWhatsapp: session.whatsapp,
         sellerId: product.ownerId,
         sellerName: product.ownerName,
         sellerWhatsapp: product.sellerWhatsapp,
@@ -742,6 +748,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           deal_status: "accepted",
           accepted_at: now,
           seller_whatsapp: order.sellerWhatsapp ?? null,
+          buyer_whatsapp: order.buyerWhatsapp ?? null,
           buyer_name: order.buyerName ?? null,
           seller_name: order.sellerName ?? null,
           buyer_email: order.buyerEmail ?? null,

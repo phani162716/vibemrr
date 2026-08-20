@@ -68,6 +68,7 @@ export interface Bid {
   buyerId?: string;
   buyerName: string;
   buyerEmail: string;
+  buyerWhatsapp?: string;
   sellerId?: string;
   amountInr: number;
   status: BidStatus;
@@ -98,6 +99,7 @@ export interface Order {
   sellerId?: string;
   sellerName?: string;
   sellerWhatsapp?: string;
+  buyerWhatsapp?: string;
   bidId?: string;
   amountInr: number;
   paymentStatus: "pending" | "paid" | "failed";
