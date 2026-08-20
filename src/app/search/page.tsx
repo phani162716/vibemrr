@@ -54,7 +54,7 @@ function SearchInner() {
         query <span className="font-medium">real estate</span>.
       </p>
       <label className="relative mt-6 block">
-        <IconSearch className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
+        <IconSearch className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
         <input
           autoFocus
           value={q}

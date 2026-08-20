@@ -1,6 +1,6 @@
-export function IconSearch({ className = "h-4 w-4" }: { className?: string }) {
+export function IconSearch({ className = "" }: { className?: string }) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <svg className={`h-4 w-4 shrink-0 ${className}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
       <circle cx="11" cy="11" r="7" />
       <path d="M20 20l-3-3" />
     </svg>
