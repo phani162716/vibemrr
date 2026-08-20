@@ -1,23 +1,26 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useApp } from "@/components/app-provider";
-import { StartupCard } from "@/components/startup-card";
+import { ProductCard } from "@/components/product-card";
 import { IconSearch } from "@/components/icons";
+import { Suspense } from "react";
 
-export default function SearchPage() {
-  const { startups } = useApp();
-  const [q, setQ] = useState("");
+function SearchInner() {
+  const params = useSearchParams();
+  const { products } = useApp();
+  const [q, setQ] = useState(params.get("q") ?? "");
   const rows = useMemo(() => {
     const n = q.trim().toLowerCase();
-    if (!n) return startups.slice(0, 12);
-    return startups.filter((s) =>
-      [s.name, s.tagline, s.category, s.city, s.founder.name, ...(s.vibeTools ?? [])]
+    if (!n) return products.filter((p) => p.status !== "paused");
+    return products.filter((p) =>
+      [p.name, p.shortDescription, p.fullDescription, p.productType, p.niche, ...p.tags]
         .join(" ")
         .toLowerCase()
         .includes(n)
     );
-  }, [q, startups]);
+  }, [q, products]);
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-10">
@@ -28,16 +31,24 @@ export default function SearchPage() {
           autoFocus
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="WhatsApp CRM, GST, vibe-coded, Pune…"
-          className="w-full rounded-xl border border-white/10 bg-card py-3 pl-10 pr-4 text-sm outline-none focus:border-saffron/40"
+          placeholder="AI Agent + real estate"
+          className="w-full rounded-xl border border-white/10 bg-card py-3 pl-10 pr-4 text-sm outline-none"
         />
       </label>
       <p className="mt-3 text-xs text-zinc-500">{rows.length} results</p>
-      <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {rows.map((s) => (
-          <StartupCard key={s.slug} startup={s} />
+      <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {rows.map((p) => (
+          <ProductCard key={p.slug} product={p} />
         ))}
       </div>
     </div>
+  );
+}
+
+export default function SearchPage() {
+  return (
+    <Suspense>
+      <SearchInner />
+    </Suspense>
   );
 }

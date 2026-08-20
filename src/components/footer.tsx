@@ -8,27 +8,20 @@ export function Footer() {
         <div>
           <Wordmark />
           <p className="mt-3 max-w-sm text-sm leading-6 text-zinc-500">
-            Verified revenue for Indian SaaS and vibe-coded startups. Numbers come from Razorpay,
-            Cashfree, PhonePe, Stripe — not screenshots.
+            Discover, buy and sell software built by independent developers and vibe coders.
           </p>
         </div>
         <div className="grid grid-cols-2 gap-8 text-sm">
           <div className="flex flex-col gap-2">
-            <p className="text-xs uppercase tracking-wider text-zinc-600">Product</p>
-            <Link href="/acquire" className="text-zinc-400 hover:text-white">
-              Marketplace
-            </Link>
-            <Link href="/stats" className="text-zinc-400 hover:text-white">
-              Stats
+            <p className="text-xs uppercase tracking-wider text-zinc-600">Marketplace</p>
+            <Link href="/market" className="text-zinc-400 hover:text-white">
+              Explore
             </Link>
             <Link href="/add" className="text-zinc-400 hover:text-white">
-              Add startup
+              List a product
             </Link>
-            <Link href="/faq" className="text-zinc-400 hover:text-white">
-              FAQ
-            </Link>
-            <Link href="/invite" className="text-zinc-400 hover:text-white">
-              Invite
+            <Link href="/search" className="text-zinc-400 hover:text-white">
+              Search
             </Link>
           </div>
           <div className="flex flex-col gap-2">
@@ -39,13 +32,11 @@ export function Footer() {
             <Link href="/privacy" className="text-zinc-400 hover:text-white">
               Privacy
             </Link>
-            <span className="text-zinc-400">INR · WhatsApp deals</span>
-            <span className="text-zinc-400">Not affiliated with TrustMRR</span>
           </div>
         </div>
       </div>
       <div className="border-t border-white/6 py-4 text-center text-xs text-zinc-600">
-        Vibers · vibers.co · Built for vibe coders in India · Not affiliated with TrustMRR
+        Vibers · Independent software marketplace · Not affiliated with Flippa, Gumroad, or Product Hunt
       </div>
     </footer>
   );

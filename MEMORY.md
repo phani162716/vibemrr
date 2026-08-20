@@ -26,6 +26,16 @@ India-first TrustMRR-style **verified rupee revenue marketplace** for vibe-coded
 
 Secrets live in `vibemrr/.env.local` and Vercel env. **Never commit `.env.local`.** Do not paste `service_role` or `sbp_` tokens in chat.
 
+## Rebuild (PDF prompt)
+
+Rebuilt as Flippa + Gumroad + Product Hunt for vibe-coded **products** (not MRR startups).
+
+- Explore `/market`, list `/add`, product `/product/[slug]`
+- Bid + counter, I'm interested, Buy now → `/checkout/[id]`
+- Seller/buyer dashboard, analytics, notifications
+- Sample products seeded in the client
+- Run `supabase/marketplace.sql` for DB persistence of new listings
+
 ## Product decisions
 
 - Demo-verify (hashed fake MRR) is **gone**. Live pull from Razorpay, Cashfree, or Stripe via `POST /api/verify-revenue`. Keys used once on the server, **not stored**.

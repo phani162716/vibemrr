@@ -3,7 +3,6 @@ import { Geist, Geist_Mono, Instrument_Serif } from "next/font/google";
 import { AppProvider } from "@/components/app-provider";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
-import { SponsorRail } from "@/components/sponsor-rail";
 import { SetupBanner } from "@/components/setup-banner";
 import { siteUrl } from "@/lib/site";
 import "./globals.css";
@@ -27,14 +26,14 @@ const instrument = Instrument_Serif({
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl()),
   title: {
-    default: "Vibers — Verified revenue for Indian SaaS & vibe coders",
+    default: "Vibers — Discover, buy and sell vibe-coded software",
     template: "%s · Vibers",
   },
   description:
-    "Buy and sell Indian SaaS, apps, and vibe-coded startups with Razorpay, Cashfree, and PhonePe-verified MRR. INR-first marketplace.",
+    "Marketplace for websites, SaaS, AI agents, apps and templates built by independent developers and vibe coders.",
   openGraph: {
     title: "Vibers",
-    description: "Verified rupee revenue for Indian SaaS and vibe-coded startups.",
+    description: "Discover, buy and sell software built by independent developers and vibe coders.",
     type: "website",
     locale: "en_IN",
     url: "https://vibers.co",
@@ -51,7 +50,6 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-full flex flex-col bg-background text-foreground">
         <AppProvider>
           <SetupBanner />
-          <SponsorRail />
           <Header />
           <main className="flex-1">{children}</main>
           <Footer />
