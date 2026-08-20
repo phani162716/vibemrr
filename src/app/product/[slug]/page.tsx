@@ -100,7 +100,18 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
           <article className="mt-8 whitespace-pre-wrap text-sm leading-7 text-zinc-300">{product.fullDescription}</article>
           <dl className="mt-8 grid gap-3 text-sm sm:grid-cols-2">
             <Meta k="Listed" v={formatDate(product.createdAt)} />
-            <Meta k="Seller" v={product.ownerName} />
+            <div>
+              <dt className="text-xs text-zinc-500">Seller</dt>
+              <dd>
+                {isOwner ? (
+                  <Link href="/profile" className="text-saffron">
+                    {product.ownerName} (you)
+                  </Link>
+                ) : (
+                  product.ownerName
+                )}
+              </dd>
+            </div>
             <Meta k="Views" v={String(product.views)} />
             <Meta k="Interested" v={String(product.interested)} />
             <Meta k="Bids" v={String(product.bidCount || productBids.length)} />

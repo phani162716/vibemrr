@@ -23,6 +23,9 @@ export function Footer() {
             <Link href="/search" className="text-zinc-400 hover:text-white">
               Search
             </Link>
+            <Link href="/profile" className="text-zinc-400 hover:text-white">
+              Profile
+            </Link>
           </div>
           <div className="flex flex-col gap-2">
             <p className="text-xs uppercase tracking-wider text-zinc-600">Legal</p>

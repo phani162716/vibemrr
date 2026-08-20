@@ -15,7 +15,8 @@ export default function EditProductPage({ params }: { params: Promise<{ slug: st
   const [fullDescription, setFull] = useState(product?.fullDescription ?? "");
   const [asking, setAsking] = useState(String(product?.askingInr ?? ""));
 
-  if (!product || (session && product.ownerId && product.ownerId !== session.id && !product.isDemo === false && product.ownerName !== session?.name)) {
+  const canEdit = !!product && !!session && product.ownerId === session.id;
+  if (!canEdit) {
     return (
       <div className="px-4 py-16 text-center">
         <p>You can’t edit this listing.</p>

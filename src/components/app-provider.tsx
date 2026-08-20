@@ -50,6 +50,7 @@ type Ctx = {
   signIn: (s: Session) => void;
   signOut: () => Promise<void>;
   setRole: (role: Role) => Promise<void>;
+  updateProfile: (patch: Partial<Session>) => Promise<void>;
   products: Product[];
   upsertProduct: (p: Product) => Promise<void>;
   deleteProduct: (slug: string) => Promise<void>;
@@ -134,12 +135,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const stored = localStorage.getItem("vibemrr.currency");
     setCurrencyState(stored === "USD" ? "USD" : "INR");
+    let localSess: Session | null = null;
     try {
       const raw = localStorage.getItem("vibemrr.session");
-      if (raw && !isSupabaseConfigured()) setSession(JSON.parse(raw) as Session);
+      if (raw) localSess = JSON.parse(raw) as Session;
     } catch {
-      /* ignore */
+      localSess = null;
     }
+    if (localSess) setSession(localSess);
     const views = localViewMap();
     const extras = localProducts();
     const withViews = mergeProducts([], extras).map((p) => ({
@@ -171,16 +174,23 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             .select("name, whatsapp, avatar_url, primary_role, handle, bio")
             .eq("id", user.id)
             .maybeSingle();
-          setSession({
+          const next: Session = {
             id: user.id,
-            email: user.email ?? "",
-            name: profile?.name || user.user_metadata?.full_name || user.email?.split("@")[0] || "User",
-            whatsapp: profile?.whatsapp ?? undefined,
-            avatarUrl: profile?.avatar_url ?? undefined,
-            role: (profile?.primary_role as Role) || undefined,
-            handle: profile?.handle ?? undefined,
-            bio: profile?.bio ?? undefined,
-          });
+            email: user.email ?? localSess?.email ?? "",
+            name:
+              profile?.name ||
+              localSess?.name ||
+              (typeof user.user_metadata?.full_name === "string" ? user.user_metadata.full_name : "") ||
+              user.email?.split("@")[0] ||
+              "User",
+            whatsapp: profile?.whatsapp ?? localSess?.whatsapp,
+            avatarUrl: profile?.avatar_url ?? localSess?.avatarUrl,
+            role: (profile?.primary_role as Role) || localSess?.role,
+            handle: profile?.handle ?? localSess?.handle ?? user.email?.split("@")[0],
+            bio: profile?.bio ?? localSess?.bio,
+          };
+          setSession(next);
+          localStorage.setItem("vibemrr.session", JSON.stringify(next));
         }
         await refreshSb().catch(() => undefined);
       } finally {
@@ -190,12 +200,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const { data: sub } = sb.auth.onAuthStateChange((_e, authSession) => {
       const user = authSession?.user;
       if (!user) return;
-      setSession((cur) => ({
-        id: user.id,
-        email: user.email ?? cur?.email ?? "",
-        name: cur?.name || user.user_metadata?.full_name || user.email?.split("@")[0] || "User",
-        role: cur?.role,
-      }));
+      setSession((cur) => {
+        const next: Session = {
+          ...cur,
+          id: user.id,
+          email: user.email ?? cur?.email ?? "",
+          name:
+            cur?.name ||
+            (typeof user.user_metadata?.full_name === "string" ? user.user_metadata.full_name : "") ||
+            user.email?.split("@")[0] ||
+            "User",
+        };
+        localStorage.setItem("vibemrr.session", JSON.stringify(next));
+        return next;
+      });
     });
     return () => {
       alive = false;
@@ -209,8 +227,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signIn = useCallback((s: Session) => {
-    setSession(s);
-    localStorage.setItem("vibemrr.session", JSON.stringify(s));
+    const next = { ...s, handle: s.handle || s.email.split("@")[0] };
+    setSession(next);
+    localStorage.setItem("vibemrr.session", JSON.stringify(next));
   }, []);
 
   const signOut = useCallback(async () => {
@@ -231,6 +250,28 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           email: session.email,
           name: session.name,
           primary_role: role,
+          updated_at: new Date().toISOString(),
+        });
+      }
+    },
+    [session]
+  );
+
+  const updateProfile = useCallback(
+    async (patch: Partial<Session>) => {
+      if (!session) return;
+      const next = { ...session, ...patch, handle: (patch.handle || session.handle || session.email.split("@")[0]).replace("@", "") };
+      setSession(next);
+      localStorage.setItem("vibemrr.session", JSON.stringify(next));
+      if (session.id && isSupabaseConfigured()) {
+        await createClient().from("profiles").upsert({
+          id: session.id,
+          email: next.email,
+          name: next.name,
+          whatsapp: next.whatsapp ?? null,
+          handle: next.handle ?? null,
+          bio: next.bio ?? null,
+          primary_role: next.role ?? null,
           updated_at: new Date().toISOString(),
         });
       }
@@ -517,6 +558,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       signIn,
       signOut,
       setRole,
+      updateProfile,
       products,
       upsertProduct,
       deleteProduct,
@@ -544,6 +586,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       signIn,
       signOut,
       setRole,
+      updateProfile,
       products,
       upsertProduct,
       deleteProduct,
