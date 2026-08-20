@@ -45,7 +45,7 @@ export function Footer() {
         </div>
       </div>
       <div className="border-t border-white/6 py-4 text-center text-xs text-zinc-600">
-        Built for vibe coders and bootstrapped SaaS in India · Not affiliated with TrustMRR
+        Vibers · vibers.co · Built for vibe coders in India · Not affiliated with TrustMRR
       </div>
     </footer>
   );

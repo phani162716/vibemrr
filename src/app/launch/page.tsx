@@ -35,7 +35,7 @@ git push -u origin main`}</pre>
           <p className="font-semibold text-zinc-50">3. Add environment variables on Vercel</p>
           <pre className="mt-2 overflow-x-auto rounded-xl bg-black/40 p-3 text-xs">{`NEXT_PUBLIC_SUPABASE_URL=https://omokvloeumvgwjedslsx.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=(same anon key as .env.local)
-NEXT_PUBLIC_SITE_URL=https://YOUR-APP.vercel.app`}</pre>
+NEXT_PUBLIC_SITE_URL=https://vibers.co`}</pre>
         </li>
         <li>
           <p className="font-semibold text-zinc-50">4. Allow the live URL in Supabase</p>

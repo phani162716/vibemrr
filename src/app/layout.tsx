@@ -27,18 +27,19 @@ const instrument = Instrument_Serif({
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl()),
   title: {
-    default: "VibeMRR — Verified revenue for Indian SaaS & vibe coders",
-    template: "%s · VibeMRR",
+    default: "Vibers — Verified revenue for Indian SaaS & vibe coders",
+    template: "%s · Vibers",
   },
   description:
     "Buy and sell Indian SaaS, apps, and vibe-coded startups with Razorpay, Cashfree, and PhonePe-verified MRR. INR-first marketplace.",
   openGraph: {
-    title: "VibeMRR",
+    title: "Vibers",
     description: "Verified rupee revenue for Indian SaaS and vibe-coded startups.",
     type: "website",
     locale: "en_IN",
+    url: "https://vibers.co",
   },
-  twitter: { card: "summary_large_image", title: "VibeMRR" },
+  twitter: { card: "summary_large_image", title: "Vibers" },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

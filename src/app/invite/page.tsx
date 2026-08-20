@@ -6,17 +6,17 @@ import { useApp } from "@/components/app-provider";
 
 const SLOTS = 5;
 
-const WHATSAPP = `Bhai, listed my startup on VibeMRR — verified rupee MRR, no fake screenshots.
+const WHATSAPP = `Bhai, listed my startup on Vibers — verified rupee MRR, no fake screenshots.
 
 Add yours in 60 seconds (email login, free):
-https://localhost:3000/add
+https://vibers.co/add
 
 If you ever want to sell, buyers see real numbers + WhatsApp.`;
 
-const TWITTER = `Listed on VibeMRR — verified Indian SaaS revenue in ₹, not screenshots.
+const TWITTER = `Listed on Vibers — verified Indian SaaS revenue in ₹, not screenshots.
 
 If you vibe-coded something that makes money, add it in 60s:
-http://localhost:3000/add`;
+https://vibers.co/add`;
 
 export default function InvitePage() {
   const { session, startups } = useApp();

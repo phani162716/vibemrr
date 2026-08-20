@@ -15,7 +15,7 @@ export function Wordmark({ compact = false }: { compact?: boolean }) {
     <span className="flex items-center gap-2">
       <Logo className="h-8 w-8" />
       <span className="text-[15px] font-semibold tracking-tight text-zinc-50">
-        VibeMRR
+        Vibers
         {!compact && (
           <span className="ml-2 hidden rounded-full border border-saffron/30 bg-saffron/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-saffron sm:inline">
             India
