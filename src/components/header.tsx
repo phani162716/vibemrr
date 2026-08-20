@@ -57,6 +57,14 @@ export function Header() {
             </Link>
           ))}
         </nav>
+        <form action="/search" method="get" className="mx-3 hidden min-w-0 flex-1 lg:block">
+          <input
+            name="q"
+            type="search"
+            placeholder="Search products"
+            className="w-full max-w-xs rounded-lg border border-white/15 bg-white/10 px-3 py-1.5 text-sm text-white placeholder:text-white/50 outline-none focus:border-white/40"
+          />
+        </form>
         <div className="flex items-center gap-2">
           <div className="hidden rounded-lg border border-white/15 p-0.5 text-xs sm:flex">
             {(["INR", "USD"] as const).map((c) => (

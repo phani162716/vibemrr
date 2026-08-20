@@ -4,32 +4,27 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useApp } from "@/components/app-provider";
 import { ProductCard } from "@/components/product-card";
-import { PRODUCT_TYPES } from "@/lib/types";
+import { NICHES, PRODUCT_TYPES } from "@/lib/types";
 import { IconSearch } from "@/components/icons";
+import { searchProducts, type SearchSort } from "@/lib/search-index";
 
 export default function MarketPage() {
   const { products } = useApp();
   const [q, setQ] = useState("");
   const [type, setType] = useState("All");
-  const [sort, setSort] = useState<"new" | "views" | "interest" | "bids" | "price">("new");
+  const [niche, setNiche] = useState("All");
+  const [sort, setSort] = useState<SearchSort>("new");
 
-  const list = useMemo(() => {
-    let rows = products.filter((p) => p.status !== "paused");
-    if (type !== "All") rows = rows.filter((p) => p.productType === type);
-    if (q.trim()) {
-      const n = q.toLowerCase();
-      rows = rows.filter((p) =>
-        [p.name, p.shortDescription, p.productType, p.niche, ...p.tags].join(" ").toLowerCase().includes(n)
-      );
-    }
-    return [...rows].sort((a, b) => {
-      if (sort === "views") return b.views - a.views;
-      if (sort === "interest") return b.interested - a.interested;
-      if (sort === "bids") return b.bidCount - a.bidCount;
-      if (sort === "price") return a.askingInr - b.askingInr;
-      return a.createdAt < b.createdAt ? 1 : -1;
-    });
-  }, [products, q, type, sort]);
+  const list = useMemo(
+    () =>
+      searchProducts(products, {
+        q,
+        type,
+        niche,
+        sort: q.trim() && sort === "new" ? "relevance" : sort,
+      }),
+    [products, q, type, niche, sort]
+  );
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-10">
@@ -42,7 +37,7 @@ export default function MarketPage() {
           List product
         </Link>
       </div>
-      <div className="card-shadow mt-8 flex flex-col gap-3 rounded-2xl border border-border bg-white p-3 sm:flex-row">
+      <div className="card-shadow mt-8 flex flex-col gap-3 rounded-2xl border border-border bg-white p-3 sm:flex-row sm:flex-wrap">
         <label className="relative flex-1">
           <IconSearch className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
           <input
@@ -53,21 +48,26 @@ export default function MarketPage() {
           />
         </label>
         <select value={type} onChange={(e) => setType(e.target.value)} className="field">
-          <option>All</option>
+          <option value="All">All types</option>
           {PRODUCT_TYPES.map((t) => (
             <option key={t}>{t}</option>
           ))}
         </select>
-        <select
-          value={sort}
-          onChange={(e) => setSort(e.target.value as typeof sort)}
-          className="field"
-        >
+        <select value={niche} onChange={(e) => setNiche(e.target.value)} className="field">
+          <option value="All">All niches</option>
+          {NICHES.map((n) => (
+            <option key={n}>{n}</option>
+          ))}
+        </select>
+        <select value={sort} onChange={(e) => setSort(e.target.value as SearchSort)} className="field">
           <option value="new">Recently added</option>
+          <option value="relevance">Best match</option>
           <option value="views">Most viewed</option>
           <option value="interest">Most interested</option>
           <option value="bids">Most bids</option>
-          <option value="price">Price: low to high</option>
+          <option value="rating">Highest rated</option>
+          <option value="price-asc">Price: low to high</option>
+          <option value="price-desc">Price: high to low</option>
         </select>
       </div>
       <p className="mt-4 text-xs text-muted">{list.length} products</p>
