@@ -553,13 +553,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         localSaveBids(next);
         return next;
       });
-      if (kind === "counter" && current?.buyerId) {
-        notify({
-          userId: current.buyerId,
-          title: "Seller counteroffer",
-          body: `${session.name} countered ${current.productName} at ₹${amountInr ?? current.amountInr}`,
-          href: "/dashboard?tab=bids",
-        });
+      if (kind === "counter" && current) {
+        const sellerActing = session.id === current.sellerId;
+        const otherId = sellerActing ? current.buyerId : current.sellerId;
+        if (otherId) {
+          notify({
+            userId: otherId,
+            title: sellerActing ? "Seller counteroffer" : "Buyer counteroffer",
+            body: `${session.name} countered ${current.productName} at ₹${amountInr ?? current.amountInr}`,
+            href: "/dashboard?tab=bids",
+          });
+        }
       }
       if (persist === "sb") {
         const sb = createClient();
@@ -573,13 +577,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           message: row.message,
           kind,
         });
-        if (current?.buyerId && kind === "counter") {
-          await sb.from("notifications").insert({
-            user_id: current.buyerId,
-            title: "Seller counteroffer",
-            body: `${session.name} countered ${current.productName} at ₹${amountInr ?? current.amountInr}`,
-            href: "/dashboard?tab=bids",
-          });
+        if (kind === "counter" && current) {
+          const sellerActing = session.id === current.sellerId;
+          const otherId = sellerActing ? current.buyerId : current.sellerId;
+          if (otherId) {
+            await sb.from("notifications").insert({
+              user_id: otherId,
+              title: sellerActing ? "Seller counteroffer" : "Buyer counteroffer",
+              body: `${session.name} countered ${current.productName} at ₹${amountInr ?? current.amountInr}`,
+              href: "/dashboard?tab=bids",
+            });
+          }
         }
       }
     },

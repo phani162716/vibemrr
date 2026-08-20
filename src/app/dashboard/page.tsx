@@ -225,9 +225,14 @@ function DashboardInner() {
                 b.status === "counter" ? "border-accent/40 bg-accent/10" : "border-border"
               }`}
             >
-              {b.status === "counter" && !seller && (
+              {b.status === "counter" && !seller && b.messages[b.messages.length - 1]?.role === "seller" && (
                 <p className="mb-2 text-xs font-semibold text-accent">
-                  Seller countered — {moneyFull(b.amountInr, currency)}. Accept or reject below.
+                  Seller countered — {moneyFull(b.amountInr, currency)}. Accept, reject, or send a counter offer.
+                </p>
+              )}
+              {b.status === "counter" && seller && b.messages[b.messages.length - 1]?.role === "buyer" && (
+                <p className="mb-2 text-xs font-semibold text-accent">
+                  Buyer countered — {moneyFull(b.amountInr, currency)}. Accept, reject, or counter again.
                 </p>
               )}
               <p className="font-medium">
@@ -257,19 +262,30 @@ function DashboardInner() {
                       const n = prompt("Counter amount in ₹", String(b.amountInr));
                       if (n) void respondBid(b.id, "counter", Number(n), "Counter offer");
                     }}
-                    className="rounded-lg border border-border px-3 py-1 text-xs"
+                    className="rounded-lg border border-accent/40 bg-accent px-3 py-1 text-xs font-semibold text-white"
                   >
-                    Counter
+                    Counter offer
                   </button>
                 </div>
               )}
-              {!seller && b.status === "counter" && (
-                <div className="mt-3 flex gap-2">
-                  <button onClick={() => void respondBid(b.id, "accept")} className="rounded-lg bg-indigo px-3 py-1 text-xs font-semibold text-white">
-                    Accept counter
-                  </button>
-                  <button onClick={() => void respondBid(b.id, "reject")} className="text-xs text-muted">
+              {!seller && b.status !== "accepted" && b.status !== "rejected" && b.status !== "purchased" && (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {b.messages[b.messages.length - 1]?.role === "seller" && (
+                    <button onClick={() => void respondBid(b.id, "accept")} className="rounded-lg bg-indigo px-3 py-1 text-xs font-semibold text-white">
+                      Accept counter
+                    </button>
+                  )}
+                  <button onClick={() => void respondBid(b.id, "reject")} className="rounded-lg border border-border px-3 py-1 text-xs">
                     Reject
+                  </button>
+                  <button
+                    onClick={() => {
+                      const n = prompt("Your counter offer in ₹", String(b.amountInr));
+                      if (n) void respondBid(b.id, "counter", Number(n), "Counter offer");
+                    }}
+                    className="rounded-lg border border-accent/40 bg-accent px-3 py-1 text-xs font-semibold text-white"
+                  >
+                    Counter offer
                   </button>
                 </div>
               )}
