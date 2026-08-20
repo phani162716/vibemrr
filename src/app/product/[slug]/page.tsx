@@ -75,12 +75,10 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
     }
     try {
       const order = await checkout(product, product.askingInr);
-      const { buyerToSellerMessage, peerWhatsAppHref } = await import("@/lib/whatsapp");
-      const href = peerWhatsAppHref(
-        order.sellerWhatsapp,
-        session.whatsapp,
-        buyerToSellerMessage(order.productName, order.amountInr)
-      );
+      const { buyerToSellerMessage, whatsappHref } = await import("@/lib/whatsapp");
+      const href = order.sellerWhatsapp
+        ? whatsappHref(order.sellerWhatsapp, buyerToSellerMessage(order.productName, order.amountInr))
+        : null;
       if (href) {
         try {
           sessionStorage.setItem(`wa-opened-${order.id}-b`, "1");

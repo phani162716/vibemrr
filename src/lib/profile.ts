@@ -2,9 +2,8 @@
 
 import { createClient } from "@/lib/supabase/client";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
-import { sameWhatsApp, validWhatsApp } from "@/lib/whatsapp";
+import { validWhatsApp } from "@/lib/whatsapp";
 
-/** Other user's WhatsApp from profiles. Never returns your own number. */
 export async function lookupProfileWhatsapp(userId?: string | null): Promise<string | undefined> {
   if (!userId || !isSupabaseConfigured()) return undefined;
   try {
@@ -17,16 +16,56 @@ export async function lookupProfileWhatsapp(userId?: string | null): Promise<str
   }
 }
 
+export async function lookupSellerContact(opts: {
+  ownerId?: string | null;
+  ownerName?: string | null;
+  slug?: string | null;
+  productId?: string | null;
+}): Promise<{ whatsapp?: string; ownerId?: string; ownerName?: string }> {
+  const fallbackName = opts.ownerName || undefined;
+  if (!isSupabaseConfigured()) {
+    return { ownerId: opts.ownerId || undefined, ownerName: fallbackName };
+  }
+  try {
+    const sb = createClient();
+    const productId = opts.productId && /^[0-9a-f-]{36}$/i.test(opts.productId) ? opts.productId : null;
+
+    let ownerId = opts.ownerId || undefined;
+    let ownerName = fallbackName;
+
+    if (opts.slug || productId) {
+      let q = sb.from("products").select("owner_id, owner_name");
+      q = productId ? q.eq("id", productId) : q.eq("slug", opts.slug!);
+      const { data: prod } = await q.maybeSingle();
+      if (prod?.owner_id) ownerId = String(prod.owner_id);
+      if (prod?.owner_name) ownerName = String(prod.owner_name);
+    }
+
+    const fromProfile = ownerId ? await lookupProfileWhatsapp(ownerId) : undefined;
+    if (fromProfile) {
+      return { whatsapp: fromProfile, ownerId, ownerName };
+    }
+
+    if (ownerName) {
+      const { data: rows } = await sb.from("profiles").select("whatsapp").eq("name", ownerName).limit(3);
+      const wa = validWhatsApp(rows?.[0]?.whatsapp ? String(rows[0].whatsapp) : undefined);
+      if (wa) return { whatsapp: wa, ownerId, ownerName };
+    }
+
+    return { ownerId, ownerName };
+  } catch {
+    return { ownerId: opts.ownerId || undefined, ownerName: fallbackName };
+  }
+}
+
 export async function resolveUserWhatsapp(
   userId?: string | null,
   fallback?: string | null,
-  not?: string | null
+  _not?: string | null
 ): Promise<string | undefined> {
-  const fb = validWhatsApp(fallback);
-  if (fb && !sameWhatsApp(fb, not)) return fb;
   const looked = await lookupProfileWhatsapp(userId);
-  if (looked && !sameWhatsApp(looked, not)) return looked;
-  return undefined;
+  if (looked) return looked;
+  return validWhatsApp(fallback);
 }
 
 export async function saveMyProfile(input: {

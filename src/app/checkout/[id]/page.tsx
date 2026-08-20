@@ -4,8 +4,8 @@ import { use, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useApp } from "@/components/app-provider";
 import { moneyFull } from "@/lib/format";
-import { lookupProfileWhatsapp } from "@/lib/profile";
-import { buyerToSellerMessage, peerWhatsAppHref, sameWhatsApp, sellerToBuyerMessage } from "@/lib/whatsapp";
+import { lookupProfileWhatsapp, lookupSellerContact } from "@/lib/profile";
+import { buyerToSellerMessage, sellerToBuyerMessage, whatsappHref } from "@/lib/whatsapp";
 
 export default function DealPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -31,7 +31,7 @@ export default function DealPage({ params }: { params: Promise<{ id: string }> }
       ? buyerToSellerMessage(order.productName, order.amountInr)
       : sellerToBuyerMessage(order.productName, order.amountInr)
     : "";
-  const wa = peerWhatsAppHref(peerPhone, session?.whatsapp, msg);
+  const wa = peerPhone ? whatsappHref(peerPhone, msg) : null;
   const open = order?.dealStatus === "accepted";
 
   useEffect(() => {
@@ -41,21 +41,19 @@ export default function DealPage({ params }: { params: Promise<{ id: string }> }
 
   useEffect(() => {
     if (!order || !session || (!isBuyer && !isSeller)) return;
-    const existing = isBuyer ? order.sellerWhatsapp : order.buyerWhatsapp;
-    if (existing && !sameWhatsApp(existing, session.whatsapp)) {
-      setLooked(true);
-      return;
-    }
-    const otherId = isBuyer ? order.sellerId : order.buyerId;
-    if (!otherId) {
-      setLooked(true);
-      return;
-    }
     let cancelled = false;
-    lookupProfileWhatsapp(otherId)
+    const run = isBuyer
+      ? lookupSellerContact({
+          ownerId: order.sellerId,
+          ownerName: order.sellerName,
+          slug: order.productSlug,
+          productId: order.productId,
+        }).then((s) => s.whatsapp)
+      : lookupProfileWhatsapp(order.buyerId);
+    run
       .then((n) => {
         if (cancelled) return;
-        if (n && !sameWhatsApp(n, session.whatsapp)) setPeerOverride(n);
+        if (n) setPeerOverride(n);
         setLooked(true);
       })
       .catch(() => {
@@ -64,7 +62,7 @@ export default function DealPage({ params }: { params: Promise<{ id: string }> }
     return () => {
       cancelled = true;
     };
-  }, [order, isBuyer, isSeller, session]);
+  }, [order?.id, order?.sellerId, order?.buyerId, order?.productSlug, order?.productId, order?.sellerName, isBuyer, isSeller, session?.id]);
 
   useEffect(() => {
     if (!order || !open || !wa || !isBuyer) return;
