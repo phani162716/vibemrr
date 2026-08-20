@@ -26,16 +26,16 @@ function SearchInner() {
     <div className="mx-auto max-w-6xl px-4 py-10">
       <h1 className="font-serif text-4xl">Search</h1>
       <label className="relative mt-6 block">
-        <IconSearch className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
+        <IconSearch className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
         <input
           autoFocus
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder="AI Agent + real estate"
-          className="w-full rounded-xl border border-white/10 bg-card py-3 pl-10 pr-4 text-sm outline-none"
+          className="w-full rounded-xl border border-border bg-card py-3 pl-10 pr-4 text-sm outline-none"
         />
       </label>
-      <p className="mt-3 text-xs text-zinc-500">{rows.length} results</p>
+      <p className="mt-3 text-xs text-muted">{rows.length} results</p>
       <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {rows.map((p) => (
           <ProductCard key={p.slug} product={p} />

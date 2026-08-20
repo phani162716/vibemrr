@@ -36,23 +36,23 @@ export default function MarketPage() {
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
         <div>
           <h1 className="font-serif text-4xl">Explore</h1>
-          <p className="mt-2 text-sm text-zinc-400">Software from independent builders. Filter by type, niche, or price.</p>
+          <p className="mt-2 text-sm text-muted">Software from independent builders. Filter by type, niche, or price.</p>
         </div>
-        <Link href="/add" className="rounded-xl bg-saffron px-4 py-2 text-sm font-semibold text-zinc-950">
+        <Link href="/add" className="btn-primary">
           List product
         </Link>
       </div>
-      <div className="mt-8 flex flex-col gap-3 rounded-2xl border border-white/8 bg-card p-3 sm:flex-row">
+      <div className="card-shadow mt-8 flex flex-col gap-3 rounded-2xl border border-border bg-white p-3 sm:flex-row">
         <label className="relative flex-1">
-          <IconSearch className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
+          <IconSearch className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
           <input
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="AI agent, real estate, GST…"
-            className="w-full rounded-lg border border-white/8 bg-black/30 py-2 pl-9 pr-3 text-sm outline-none"
+            className="field py-2 pl-9"
           />
         </label>
-        <select value={type} onChange={(e) => setType(e.target.value)} className="rounded-lg border border-white/8 bg-black/30 px-3 py-2 text-sm">
+        <select value={type} onChange={(e) => setType(e.target.value)} className="field">
           <option>All</option>
           {PRODUCT_TYPES.map((t) => (
             <option key={t}>{t}</option>
@@ -61,7 +61,7 @@ export default function MarketPage() {
         <select
           value={sort}
           onChange={(e) => setSort(e.target.value as typeof sort)}
-          className="rounded-lg border border-white/8 bg-black/30 px-3 py-2 text-sm"
+          className="field"
         >
           <option value="new">Recently added</option>
           <option value="views">Most viewed</option>
@@ -70,7 +70,7 @@ export default function MarketPage() {
           <option value="price">Price: low to high</option>
         </select>
       </div>
-      <p className="mt-4 text-xs text-zinc-500">{list.length} products</p>
+      <p className="mt-4 text-xs text-muted">{list.length} products</p>
       <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {list.map((p) => (
           <ProductCard key={p.slug} product={p} />

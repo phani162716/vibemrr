@@ -35,7 +35,7 @@ export default function UpdatePasswordPage() {
   return (
     <div className="mx-auto max-w-md px-4 py-16">
       <h1 className="font-serif text-4xl">Set a new password</h1>
-      <p className="mt-2 text-sm text-zinc-400">You opened the reset link from your email. Choose a password you will remember.</p>
+      <p className="mt-2 text-sm text-muted">You opened the reset link from your email. Choose a password you will remember.</p>
       <form onSubmit={onSubmit} className="mt-8 space-y-3">
         <input
           type="password"
@@ -44,7 +44,7 @@ export default function UpdatePasswordPage() {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           placeholder="New password"
-          className="w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm"
+          className="w-full rounded-lg border border-border bg-white px-3 py-2 text-sm"
         />
         <input
           type="password"
@@ -53,12 +53,12 @@ export default function UpdatePasswordPage() {
           value={confirm}
           onChange={(e) => setConfirm(e.target.value)}
           placeholder="Confirm password"
-          className="w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm"
+          className="w-full rounded-lg border border-border bg-white px-3 py-2 text-sm"
         />
-        {error && <p className="text-sm text-red-400">{error}</p>}
+        {error && <p className="text-sm text-danger">{error}</p>}
         <button
           disabled={pending}
-          className="w-full rounded-xl bg-saffron py-2.5 text-sm font-semibold text-zinc-950 disabled:opacity-60"
+          className="w-full rounded-xl bg-indigo py-2.5 text-sm font-semibold text-white disabled:opacity-60"
         >
           {pending ? "Saving…" : "Save password and continue"}
         </button>

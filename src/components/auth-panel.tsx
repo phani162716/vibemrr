@@ -77,20 +77,20 @@ export function AuthPanel({ next = "/dashboard" }: { next?: string }) {
   }
 
   const field =
-    "w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm";
+    "w-full rounded-lg border border-border bg-white px-3 py-2 text-sm";
 
   return (
     <div className="space-y-4">
       {mode === "forgot" ? (
         sent ? (
-          <p className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-3 text-sm text-emerald-200">
-            If <span className="text-zinc-50">{email}</span> is on Vibers, a reset link is on its way
+          <p className="rounded-xl border border-success/30 bg-success/10 p-3 text-sm text-success">
+            If <span className="text-foreground">{email}</span> is on Vibers, a reset link is on its way
             (and in spam). Open it, set a new password, then sign in.
           </p>
         ) : (
           <form onSubmit={onForgot} className="space-y-3">
             <h2 className="text-sm font-medium">Forgot password</h2>
-            <p className="text-xs text-zinc-500">
+            <p className="text-xs text-muted">
               We’ll email a link to set a new password. This also recovers accounts that never
               confirmed signup.
             </p>
@@ -105,7 +105,7 @@ export function AuthPanel({ next = "/dashboard" }: { next?: string }) {
             <button
               type="submit"
               disabled={pending}
-              className="w-full rounded-xl bg-saffron py-2.5 text-sm font-semibold text-zinc-950 disabled:opacity-60"
+              className="w-full rounded-xl bg-indigo py-2.5 text-sm font-semibold text-white disabled:opacity-60"
             >
               {pending ? "Sending…" : "Send reset link"}
             </button>
@@ -116,7 +116,7 @@ export function AuthPanel({ next = "/dashboard" }: { next?: string }) {
                 setSent(false);
                 setError(null);
               }}
-              className="w-full text-xs text-zinc-500"
+              className="w-full text-xs text-muted"
             >
               Back to sign in
             </button>
@@ -152,7 +152,7 @@ export function AuthPanel({ next = "/dashboard" }: { next?: string }) {
           <button
             type="submit"
             disabled={pending}
-            className="w-full rounded-xl bg-saffron py-2.5 text-sm font-semibold text-zinc-950 disabled:opacity-60"
+            className="w-full rounded-xl bg-indigo py-2.5 text-sm font-semibold text-white disabled:opacity-60"
           >
             {pending ? "Please wait…" : isNew ? "Create free account" : "Sign in"}
           </button>
@@ -164,7 +164,7 @@ export function AuthPanel({ next = "/dashboard" }: { next?: string }) {
                 setSent(false);
                 setError(null);
               }}
-              className="w-full text-xs text-saffron"
+              className="w-full text-xs text-indigo-2"
             >
               Forgot password?
             </button>
@@ -172,13 +172,13 @@ export function AuthPanel({ next = "/dashboard" }: { next?: string }) {
           <button
             type="button"
             onClick={() => setIsNew((v) => !v)}
-            className="w-full text-xs text-zinc-500 hover:text-zinc-300"
+            className="w-full text-xs text-muted hover:text-muted"
           >
             {isNew ? "Already have an account? Sign in" : "New here? Create an account"}
           </button>
         </form>
       ) : sent ? (
-        <p className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-3 text-sm text-emerald-200">
+        <p className="rounded-xl border border-success/30 bg-success/10 p-3 text-sm text-success">
           Check {email} for a sign-in link.
         </p>
       ) : (
@@ -194,7 +194,7 @@ export function AuthPanel({ next = "/dashboard" }: { next?: string }) {
           <button
             type="submit"
             disabled={pending}
-            className="w-full rounded-xl bg-saffron py-2.5 text-sm font-semibold text-zinc-950 disabled:opacity-60"
+            className="w-full rounded-xl bg-indigo py-2.5 text-sm font-semibold text-white disabled:opacity-60"
           >
             {pending ? "Sending…" : "Email me a magic link"}
           </button>
@@ -209,7 +209,7 @@ export function AuthPanel({ next = "/dashboard" }: { next?: string }) {
             setError(null);
             setSent(false);
           }}
-          className="w-full text-xs text-zinc-500 hover:text-zinc-300"
+          className="w-full text-xs text-muted hover:text-muted"
         >
           {mode === "password" ? "Use a magic link instead" : "Use email + password instead"}
         </button>
@@ -217,21 +217,21 @@ export function AuthPanel({ next = "/dashboard" }: { next?: string }) {
 
       {mode !== "forgot" && (
         <>
-          <div className="relative py-1 text-center text-[11px] uppercase tracking-wider text-zinc-600">
+          <div className="relative py-1 text-center text-[11px] uppercase tracking-wider text-muted">
             <span className="bg-background px-2">or</span>
           </div>
           <button
             type="button"
             onClick={onGithub}
             disabled={pending}
-            className="flex w-full items-center justify-center gap-2 rounded-xl border border-white/12 bg-white px-4 py-2.5 text-sm font-semibold text-zinc-900 hover:bg-zinc-100 disabled:opacity-60"
+            className="flex w-full items-center justify-center gap-2 rounded-xl border border-border bg-white px-4 py-2.5 text-sm font-semibold text-zinc-900 hover:bg-zinc-100 disabled:opacity-60"
           >
             <GithubMark />
             Continue with GitHub
           </button>
         </>
       )}
-      {error && <p className="text-sm text-red-400">{error}</p>}
+      {error && <p className="text-sm text-danger">{error}</p>}
     </div>
   );
 }

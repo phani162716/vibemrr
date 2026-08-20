@@ -43,7 +43,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
     return (
       <div className="mx-auto max-w-lg px-4 py-24 text-center">
         <h1 className="text-2xl font-semibold">Product not found</h1>
-        <Link href="/market" className="mt-4 inline-block text-saffron">
+        <Link href="/market" className="mt-4 inline-block text-indigo-2">
           Explore
         </Link>
       </div>
@@ -76,35 +76,41 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
     <div className="mx-auto max-w-6xl px-4 py-10">
       <div className="grid gap-8 lg:grid-cols-[1fr_320px]">
         <div>
-          <p className="text-xs uppercase tracking-wide text-zinc-500">
+          <p className="text-xs uppercase tracking-wide text-muted">
             {product.productType} · {product.niche}
           </p>
           <h1 className="mt-1 text-4xl font-semibold tracking-tight">{product.name}</h1>
-          <p className="mt-2 text-zinc-400">{product.shortDescription}</p>
+          <p className="mt-2 text-muted">{product.shortDescription}</p>
           <div className="mt-4 flex flex-wrap gap-2">
             {product.tags.map((t) => (
-              <span key={t} className="rounded-full bg-white/8 px-2.5 py-1 text-xs text-zinc-300">
+              <span key={t} className="rounded-full bg-[#F5F6F8] px-2.5 py-1 text-xs text-muted">
                 {t}
               </span>
             ))}
-            <span className="rounded-full bg-amber-400/15 px-2.5 py-1 text-xs text-amber-200">{product.status}</span>
+            <span
+              className={`rounded-full px-2.5 py-1 text-xs ${
+                product.status === "sold" ? "bg-success/15 text-success" : "bg-accent/15 text-accent"
+              }`}
+            >
+              {product.status === "available" ? "New" : product.status}
+            </span>
           </div>
           {product.images[0] ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={product.images[0]} alt="" className="mt-6 w-full rounded-2xl border border-white/8" />
+            <img src={product.images[0]} alt="" className="mt-6 w-full rounded-2xl border border-border" />
           ) : (
-            <div className="mt-6 flex h-48 items-center justify-center rounded-2xl border border-white/8 bg-white/4 text-5xl">
+            <div className="mt-6 flex h-48 items-center justify-center rounded-2xl border border-border bg-indigo text-5xl text-white">
               {product.name[0]}
             </div>
           )}
-          <article className="mt-8 whitespace-pre-wrap text-sm leading-7 text-zinc-300">{product.fullDescription}</article>
+          <article className="mt-8 whitespace-pre-wrap text-sm leading-7 text-foreground">{product.fullDescription}</article>
           <dl className="mt-8 grid gap-3 text-sm sm:grid-cols-2">
             <Meta k="Listed" v={formatDate(product.createdAt)} />
             <div>
-              <dt className="text-xs text-zinc-500">Seller</dt>
+              <dt className="text-xs text-muted">Seller</dt>
               <dd>
                 {isOwner ? (
-                  <Link href="/profile" className="text-saffron">
+                  <Link href="/profile" className="text-indigo-2">
                     {product.ownerName} (you)
                   </Link>
                 ) : (
@@ -117,9 +123,9 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
             <Meta k="Bids" v={String(product.bidCount || productBids.length)} />
             {product.demoUrl && (
               <div>
-                <dt className="text-xs text-zinc-500">Demo</dt>
+                <dt className="text-xs text-muted">Demo</dt>
                 <dd>
-                  <a href={product.demoUrl} className="text-saffron" target="_blank" rel="noreferrer">
+                  <a href={product.demoUrl} className="text-indigo-2" target="_blank" rel="noreferrer">
                     Open demo
                   </a>
                 </dd>
@@ -128,40 +134,40 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
           </dl>
           <section className="mt-10">
             <h2 className="text-lg font-semibold">Reviews</h2>
-            {productReviews.length === 0 && <p className="mt-2 text-sm text-zinc-500">No verified reviews yet.</p>}
+            {productReviews.length === 0 && <p className="mt-2 text-sm text-muted">No verified reviews yet.</p>}
             <div className="mt-3 space-y-3">
               {productReviews.map((r) => (
-                <div key={r.id} className="rounded-xl border border-white/8 p-4 text-sm">
+                <div key={r.id} className="rounded-xl border border-border bg-white p-4 text-sm card-shadow">
                   <p className="font-medium">
                     {r.buyerName} · {"★".repeat(r.rating)}
                   </p>
-                  <p className="mt-1 text-zinc-400">{r.comment}</p>
+                  <p className="mt-1 text-muted">{r.comment}</p>
                 </div>
               ))}
             </div>
           </section>
         </div>
         <aside className="space-y-4 lg:sticky lg:top-20 lg:self-start">
-          <div className="rounded-2xl border border-white/8 bg-card p-5">
-            <p className="text-xs uppercase tracking-wide text-zinc-500">Asking price</p>
-            <p className="mt-1 text-3xl font-semibold">{moneyFull(product.askingInr, currency)}</p>
+          <div className="card-shadow rounded-2xl border border-border bg-white p-5">
+            <p className="text-xs uppercase tracking-wide text-muted">Asking price</p>
+            <p className="mt-1 text-3xl font-semibold text-indigo">{moneyFull(product.askingInr, currency)}</p>
             {product.status === "sold" ? (
-              <p className="mt-4 text-sm text-zinc-400">Sold</p>
+              <p className="mt-4 text-sm font-medium text-success">Sold</p>
             ) : isOwner ? (
-              <Link href={`/product/${product.slug}/edit`} className="mt-4 block rounded-xl border border-white/10 py-2 text-center text-sm">
+              <Link href={`/product/${product.slug}/edit`} className="btn-ghost mt-4 block w-full">
                 Edit listing
               </Link>
             ) : (
               <div className="mt-4 space-y-2">
-                <button onClick={() => void buyNow()} className="w-full rounded-xl bg-saffron py-2.5 text-sm font-semibold text-zinc-950">
+                <button onClick={() => void buyNow()} className="btn-accent w-full">
                   Buy now
                 </button>
-                <button onClick={() => setOfferOpen(true)} className="w-full rounded-xl border border-white/10 py-2.5 text-sm">
+                <button onClick={() => setOfferOpen(true)} className="btn-accent w-full bg-accent-2 hover:bg-accent">
                   Make an offer
                 </button>
                 <button
                   onClick={() => void toggleInterest(product).catch((e) => alert(e.message))}
-                  className="w-full rounded-xl border border-white/10 py-2.5 text-sm"
+                  className="btn-ghost w-full"
                 >
                   {interestedSlugs.includes(product.slug) ? "Interested ✓" : "I'm interested"}
                 </button>
@@ -173,35 +179,35 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
 
       {offerOpen && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-4 sm:items-center">
-          <form onSubmit={onBid} className="w-full max-w-md rounded-2xl border border-white/10 bg-[#111114] p-5">
+          <form onSubmit={onBid} className="w-full max-w-md rounded-2xl border border-border bg-white p-5 card-shadow">
             <h3 className="text-lg font-semibold">Make an offer</h3>
-            <p className="mt-1 text-xs text-zinc-500">Asking {money(product.askingInr, currency)}</p>
-            <label className="mt-4 block text-xs text-zinc-400">
+            <p className="mt-1 text-xs text-muted">Asking {money(product.askingInr, currency)}</p>
+            <label className="mt-4 block text-xs text-muted">
               Bid amount (₹)
               <input
                 required
                 type="number"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
-                className="mt-1 w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm"
+                className="field mt-1"
               />
             </label>
-            <label className="mt-3 block text-xs text-zinc-400">
+            <label className="mt-3 block text-xs text-muted">
               Message (optional)
               <textarea
                 rows={3}
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 placeholder="Can you include the domain and existing users?"
-                className="mt-1 w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm"
+                className="field mt-1"
               />
             </label>
-            {err && <p className="mt-2 text-xs text-red-400">{err}</p>}
+            {err && <p className="mt-2 text-xs text-danger">{err}</p>}
             <div className="mt-4 flex gap-2">
-              <button type="submit" className="rounded-lg bg-saffron px-4 py-2 text-sm font-semibold text-zinc-950">
+              <button type="submit" className="btn-accent">
                 Submit bid
               </button>
-              <button type="button" onClick={() => setOfferOpen(false)} className="text-sm text-zinc-500">
+              <button type="button" onClick={() => setOfferOpen(false)} className="text-sm text-muted">
                 Cancel
               </button>
             </div>
@@ -215,7 +221,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
 function Meta({ k, v }: { k: string; v: string }) {
   return (
     <div>
-      <dt className="text-xs text-zinc-500">{k}</dt>
+      <dt className="text-xs text-muted">{k}</dt>
       <dd>{v}</dd>
     </div>
   );

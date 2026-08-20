@@ -15,7 +15,7 @@ export default function AnalyticsPage({ params }: { params: Promise<{ slug: stri
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10">
-      <Link href={`/product/${p.slug}`} className="text-xs text-zinc-500">
+      <Link href={`/product/${p.slug}`} className="text-xs text-muted">
         ← {p.name}
       </Link>
       <h1 className="mt-2 font-serif text-4xl">Analytics</h1>
@@ -24,7 +24,7 @@ export default function AnalyticsPage({ params }: { params: Promise<{ slug: stri
         <Tile label="Interested" value={String(p.interested)} />
         <Tile label="Bids" value={String(bidN || p.bidCount)} />
       </div>
-      <p className="mt-8 text-sm text-zinc-400">
+      <p className="mt-8 text-sm text-muted">
         Funnel: Views → Interested ({conv}%) → Bids ({bidConv}%) → {p.status === "sold" ? "Sold" : "Open"}
       </p>
       <div className="mt-6 space-y-3">
@@ -38,8 +38,8 @@ export default function AnalyticsPage({ params }: { params: Promise<{ slug: stri
 
 function Tile({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-white/8 p-4">
-      <p className="text-[11px] uppercase text-zinc-500">{label}</p>
+    <div className="rounded-2xl border border-border p-4">
+      <p className="text-[11px] uppercase text-muted">{label}</p>
       <p className="mt-1 text-2xl font-semibold">{value}</p>
     </div>
   );
@@ -48,12 +48,12 @@ function Tile({ label, value }: { label: string; value: string }) {
 function Bar({ label, pct }: { label: string; pct: number }) {
   return (
     <div>
-      <div className="mb-1 flex justify-between text-xs text-zinc-500">
+      <div className="mb-1 flex justify-between text-xs text-muted">
         <span>{label}</span>
         <span>{pct}%</span>
       </div>
-      <div className="h-1.5 overflow-hidden rounded-full bg-white/8">
-        <div className="h-full bg-saffron" style={{ width: `${Math.max(pct, 4)}%` }} />
+      <div className="h-1.5 overflow-hidden rounded-full bg-[#F5F6F8]">
+        <div className="h-full bg-indigo" style={{ width: `${Math.max(pct, 4)}%` }} />
       </div>
     </div>
   );

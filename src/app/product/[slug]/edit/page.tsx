@@ -20,7 +20,7 @@ export default function EditProductPage({ params }: { params: Promise<{ slug: st
     return (
       <div className="px-4 py-16 text-center">
         <p>You can’t edit this listing.</p>
-        <Link href="/dashboard" className="text-saffron">
+        <Link href="/dashboard" className="text-indigo-2">
           Dashboard
         </Link>
       </div>
@@ -43,11 +43,11 @@ export default function EditProductPage({ params }: { params: Promise<{ slug: st
       }}
     >
       <h1 className="font-serif text-4xl">Edit product</h1>
-      <input value={name} onChange={(e) => setName(e.target.value)} className="w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm" />
-      <input value={shortDescription} onChange={(e) => setShort(e.target.value)} className="w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm" />
-      <textarea value={fullDescription} onChange={(e) => setFull(e.target.value)} rows={6} className="w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm" />
-      <input type="number" value={asking} onChange={(e) => setAsking(e.target.value)} className="w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm" />
-      <button className="rounded-xl bg-saffron px-4 py-2 text-sm font-semibold text-zinc-950">Save</button>
+      <input value={name} onChange={(e) => setName(e.target.value)} className="w-full rounded-lg border border-border bg-white px-3 py-2 text-sm" />
+      <input value={shortDescription} onChange={(e) => setShort(e.target.value)} className="w-full rounded-lg border border-border bg-white px-3 py-2 text-sm" />
+      <textarea value={fullDescription} onChange={(e) => setFull(e.target.value)} rows={6} className="w-full rounded-lg border border-border bg-white px-3 py-2 text-sm" />
+      <input type="number" value={asking} onChange={(e) => setAsking(e.target.value)} className="w-full rounded-lg border border-border bg-white px-3 py-2 text-sm" />
+      <button className="rounded-xl bg-indigo px-4 py-2 text-sm font-semibold text-white">Save</button>
     </form>
   );
 }

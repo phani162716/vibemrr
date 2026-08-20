@@ -17,7 +17,7 @@ export default function SettingsPage() {
   if (!session) {
     return (
       <div className="px-4 py-16 text-center">
-        <Link href="/dashboard" className="text-saffron">
+        <Link href="/dashboard" className="text-indigo-2">
           Sign in
         </Link>
       </div>
@@ -27,7 +27,7 @@ export default function SettingsPage() {
   return (
     <div className="mx-auto max-w-md px-4 py-12">
       <h1 className="font-serif text-4xl">Settings</h1>
-      <p className="mt-2 text-sm text-zinc-500">{session.email}</p>
+      <p className="mt-2 text-sm text-muted">{session.email}</p>
       <form
         className="mt-8 space-y-3"
         onSubmit={(e) => {
@@ -35,35 +35,35 @@ export default function SettingsPage() {
           void updateProfile({ name, handle, whatsapp, bio }).then(() => setSaved(true));
         }}
       >
-        <label className="block text-xs text-zinc-400">
+        <label className="block text-xs text-muted">
           Display name
-          <input value={name} onChange={(e) => setName(e.target.value)} className="mt-1 w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm" />
+          <input value={name} onChange={(e) => setName(e.target.value)} className="mt-1 w-full rounded-lg border border-border bg-white px-3 py-2 text-sm" />
         </label>
-        <label className="block text-xs text-zinc-400">
+        <label className="block text-xs text-muted">
           Handle
-          <input value={handle} onChange={(e) => setHandle(e.target.value)} className="mt-1 w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm" />
+          <input value={handle} onChange={(e) => setHandle(e.target.value)} className="mt-1 w-full rounded-lg border border-border bg-white px-3 py-2 text-sm" />
         </label>
-        <label className="block text-xs text-zinc-400">
+        <label className="block text-xs text-muted">
           WhatsApp
-          <input value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} className="mt-1 w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm" />
+          <input value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} className="mt-1 w-full rounded-lg border border-border bg-white px-3 py-2 text-sm" />
         </label>
-        <label className="block text-xs text-zinc-400">
+        <label className="block text-xs text-muted">
           Bio
-          <textarea value={bio} onChange={(e) => setBio(e.target.value)} rows={3} className="mt-1 w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm" />
+          <textarea value={bio} onChange={(e) => setBio(e.target.value)} rows={3} className="mt-1 w-full rounded-lg border border-border bg-white px-3 py-2 text-sm" />
         </label>
-        <label className="block text-xs text-zinc-400">
+        <label className="block text-xs text-muted">
           Primary role
           <select
             value={session.role ?? "buyer"}
             onChange={(e) => void setRole(e.target.value as "buyer" | "seller")}
-            className="mt-1 w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm"
+            className="mt-1 w-full rounded-lg border border-border bg-white px-3 py-2 text-sm"
           >
             <option value="buyer">Buyer</option>
             <option value="seller">Seller</option>
           </select>
         </label>
-        <button className="w-full rounded-xl bg-saffron py-2.5 text-sm font-semibold text-zinc-950">Save profile</button>
-        {saved && <p className="text-xs text-emerald-400">Saved</p>}
+        <button className="w-full rounded-xl bg-indigo py-2.5 text-sm font-semibold text-white">Save profile</button>
+        {saved && <p className="text-xs text-success">Saved</p>}
       </form>
       <button
         type="button"
@@ -71,7 +71,7 @@ export default function SettingsPage() {
           await signOut();
           router.push("/");
         }}
-        className="mt-8 w-full rounded-xl border border-red-400/40 py-2.5 text-sm font-medium text-red-400"
+        className="mt-8 w-full rounded-xl border border-danger/40 py-2.5 text-sm font-medium text-danger"
       >
         Sign out
       </button>

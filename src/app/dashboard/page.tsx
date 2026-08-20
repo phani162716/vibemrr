@@ -70,7 +70,7 @@ function DashboardInner() {
     return (
       <div className="mx-auto max-w-md px-4 py-16">
         <h1 className="font-serif text-4xl">Sign in</h1>
-        <p className="mt-2 text-sm text-zinc-400">Same account can buy and sell.</p>
+        <p className="mt-2 text-sm text-muted">Same account can buy and sell.</p>
         {isSupabaseConfigured() ? (
           <div className="mt-6">
             <AuthPanel next="/dashboard" />
@@ -83,9 +83,9 @@ function DashboardInner() {
               signIn({ name: name || "User", email: email || "you@vibers.co" });
             }}
           >
-            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Name" className="w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm" />
-            <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" className="w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm" />
-            <button className="w-full rounded-xl bg-saffron py-2.5 text-sm font-semibold text-zinc-950">Continue</button>
+            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Name" className="w-full rounded-lg border border-border bg-white px-3 py-2 text-sm" />
+            <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" className="w-full rounded-lg border border-border bg-white px-3 py-2 text-sm" />
+            <button className="w-full rounded-xl bg-indigo py-2.5 text-sm font-semibold text-white">Continue</button>
           </form>
         )}
       </div>
@@ -96,15 +96,15 @@ function DashboardInner() {
     return (
       <div className="mx-auto max-w-md px-4 py-16">
         <h1 className="font-serif text-4xl">How will you use Vibers?</h1>
-        <p className="mt-2 text-sm text-zinc-400">You can switch later from the dashboard or Settings.</p>
+        <p className="mt-2 text-sm text-muted">You can switch later from the dashboard or Settings.</p>
         <div className="mt-6 grid gap-3">
-          <button onClick={() => void setRole("buyer")} className="rounded-2xl border border-white/10 p-4 text-left hover:border-saffron/40">
+          <button onClick={() => void setRole("buyer")} className="rounded-2xl border border-border p-4 text-left hover:border-accent/40">
             <p className="font-medium">Buyer</p>
-            <p className="text-xs text-zinc-500">Browse, bid, and purchase products.</p>
+            <p className="text-xs text-muted">Browse, bid, and purchase products.</p>
           </button>
-          <button onClick={() => void setRole("seller")} className="rounded-2xl border border-white/10 p-4 text-left hover:border-saffron/40">
+          <button onClick={() => void setRole("seller")} className="rounded-2xl border border-border p-4 text-left hover:border-accent/40">
             <p className="font-medium">Seller</p>
-            <p className="text-xs text-zinc-500">List products and receive bids.</p>
+            <p className="text-xs text-muted">List products and receive bids.</p>
           </button>
         </div>
       </div>
@@ -119,22 +119,22 @@ function DashboardInner() {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-3xl font-semibold">{seller ? "Seller" : "Buyer"} dashboard</h1>
-          <p className="text-sm text-zinc-500">
+          <p className="text-sm text-muted">
             {session.name} · {session.email}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Link href="/profile" className="rounded-lg border border-white/10 px-3 py-2 text-sm">
+          <Link href="/profile" className="rounded-lg border border-border px-3 py-2 text-sm">
             Profile
           </Link>
           <button
             onClick={() => void setRole(seller ? "buyer" : "seller")}
-            className="rounded-lg border border-white/10 px-3 py-2 text-sm"
+            className="rounded-lg border border-border px-3 py-2 text-sm"
           >
             Switch to {seller ? "buyer" : "seller"}
           </button>
           {seller && (
-            <Link href="/add" className="rounded-lg bg-saffron px-3 py-2 text-sm font-semibold text-zinc-950">
+            <Link href="/add" className="rounded-lg bg-indigo px-3 py-2 text-sm font-semibold text-white">
               Add product
             </Link>
           )}
@@ -143,7 +143,7 @@ function DashboardInner() {
               await signOut();
               router.push("/");
             }}
-            className="rounded-lg border border-red-400/40 px-3 py-2 text-sm text-red-400"
+            className="rounded-lg border border-danger/40 px-3 py-2 text-sm text-danger"
           >
             Sign out
           </button>
@@ -155,7 +155,7 @@ function DashboardInner() {
           <button
             key={id}
             onClick={() => setTab(id)}
-            className={`rounded-lg px-3 py-1.5 capitalize ${tab === id ? "bg-white/10 text-white" : "text-zinc-500"}`}
+            className={`rounded-lg px-3 py-1.5 capitalize ${tab === id ? "bg-indigo text-white" : "text-muted"}`}
           >
             {id === "saved" ? "Interested" : id}
           </button>
@@ -184,27 +184,27 @@ function DashboardInner() {
             />
           )}
           {mine.map((p) => (
-            <div key={p.slug} className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/8 p-4">
+            <div key={p.slug} className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border p-4">
               <div>
-                <Link href={`/product/${p.slug}`} className="font-medium hover:text-saffron">
+                <Link href={`/product/${p.slug}`} className="font-medium hover:text-indigo-2">
                   {p.name}
                 </Link>
-                <p className="text-xs text-zinc-500">
+                <p className="text-xs text-muted">
                   {p.status} · {p.views} views · {p.interested} interested · {p.bidCount} bids
                 </p>
               </div>
               <div className="flex flex-wrap gap-2 text-xs">
-                <Link href={`/product/${p.slug}/analytics`} className="text-saffron">
+                <Link href={`/product/${p.slug}/analytics`} className="text-indigo-2">
                   Analytics
                 </Link>
-                <Link href={`/product/${p.slug}/edit`} className="text-zinc-300">
+                <Link href={`/product/${p.slug}/edit`} className="text-muted">
                   Edit
                 </Link>
                 <button onClick={() => void setStatus(p.slug, p.status === "paused" ? "available" : "paused")}>
                   {p.status === "paused" ? "Unpause" : "Pause"}
                 </button>
                 <button onClick={() => void setStatus(p.slug, "sold")}>Mark sold</button>
-                <button onClick={() => void deleteProduct(p.slug)} className="text-red-400">
+                <button onClick={() => void deleteProduct(p.slug)} className="text-danger">
                   Delete
                 </button>
               </div>
@@ -222,21 +222,21 @@ function DashboardInner() {
             <div
               key={b.id}
               className={`rounded-2xl border p-4 text-sm ${
-                b.status === "counter" ? "border-saffron/40 bg-saffron/5" : "border-white/8"
+                b.status === "counter" ? "border-accent/40 bg-accent/10" : "border-border"
               }`}
             >
               {b.status === "counter" && !seller && (
-                <p className="mb-2 text-xs font-semibold text-saffron">
+                <p className="mb-2 text-xs font-semibold text-accent">
                   Seller countered — {moneyFull(b.amountInr, currency)}. Accept or reject below.
                 </p>
               )}
               <p className="font-medium">
                 {b.productName} · {b.status}
               </p>
-              <p className="text-zinc-400">
+              <p className="text-muted">
                 Asking {moneyFull(b.askingInr, currency)} · current {moneyFull(b.amountInr, currency)} · {b.buyerName}
               </p>
-              <ol className="mt-3 space-y-1 text-xs text-zinc-500">
+              <ol className="mt-3 space-y-1 text-xs text-muted">
                 {b.messages.map((m) => (
                   <li key={m.id}>
                     {m.actorName} ({m.kind}
@@ -246,10 +246,10 @@ function DashboardInner() {
               </ol>
               {seller && b.status !== "accepted" && b.status !== "rejected" && b.status !== "purchased" && (
                 <div className="mt-3 flex flex-wrap gap-2">
-                  <button onClick={() => void respondBid(b.id, "accept")} className="rounded-lg bg-saffron px-3 py-1 text-xs font-semibold text-zinc-950">
+                  <button onClick={() => void respondBid(b.id, "accept")} className="rounded-lg bg-indigo px-3 py-1 text-xs font-semibold text-white">
                     Accept
                   </button>
-                  <button onClick={() => void respondBid(b.id, "reject")} className="rounded-lg border border-white/10 px-3 py-1 text-xs">
+                  <button onClick={() => void respondBid(b.id, "reject")} className="rounded-lg border border-border px-3 py-1 text-xs">
                     Reject
                   </button>
                   <button
@@ -257,7 +257,7 @@ function DashboardInner() {
                       const n = prompt("Counter amount in ₹", String(b.amountInr));
                       if (n) void respondBid(b.id, "counter", Number(n), "Counter offer");
                     }}
-                    className="rounded-lg border border-white/10 px-3 py-1 text-xs"
+                    className="rounded-lg border border-border px-3 py-1 text-xs"
                   >
                     Counter
                   </button>
@@ -265,10 +265,10 @@ function DashboardInner() {
               )}
               {!seller && b.status === "counter" && (
                 <div className="mt-3 flex gap-2">
-                  <button onClick={() => void respondBid(b.id, "accept")} className="rounded-lg bg-saffron px-3 py-1 text-xs font-semibold text-zinc-950">
+                  <button onClick={() => void respondBid(b.id, "accept")} className="rounded-lg bg-indigo px-3 py-1 text-xs font-semibold text-white">
                     Accept counter
                   </button>
-                  <button onClick={() => void respondBid(b.id, "reject")} className="text-xs text-zinc-500">
+                  <button onClick={() => void respondBid(b.id, "reject")} className="text-xs text-muted">
                     Reject
                   </button>
                 </div>
@@ -282,7 +282,7 @@ function DashboardInner() {
                     const o = await checkout(p, b.amountInr, b.id);
                     router.push(`/checkout/${o.id}`);
                   }}
-                  className="mt-3 text-xs text-saffron"
+                  className="mt-3 text-xs text-indigo-2"
                 >
                   Go to checkout
                 </button>
@@ -296,7 +296,7 @@ function DashboardInner() {
         <div className="mt-6 space-y-2">
           {saved.length === 0 && <Empty title="Nothing saved" hint="Tap I'm interested on a product." href="/market" cta="Explore" />}
           {saved.map((p) => (
-            <Link key={p.slug} href={`/product/${p.slug}`} className="block rounded-xl border border-white/8 p-4">
+            <Link key={p.slug} href={`/product/${p.slug}`} className="block rounded-xl border border-border p-4">
               {p.name}
             </Link>
           ))}
@@ -314,7 +314,7 @@ function DashboardInner() {
             />
           )}
           {(tab === "sales" ? sales : myOrders).map((o) => (
-            <Link key={o.id} href={`/checkout/${o.id}`} className="block rounded-xl border border-white/8 p-4 text-sm">
+            <Link key={o.id} href={`/checkout/${o.id}`} className="block rounded-xl border border-border p-4 text-sm">
               {o.productName} · {moneyFull(o.amountInr, currency)} · {o.paymentStatus}
             </Link>
           ))}
@@ -326,8 +326,8 @@ function DashboardInner() {
 
 function Tile({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-white/8 bg-card px-4 py-3">
-      <p className="text-[11px] uppercase tracking-wide text-zinc-500">{label}</p>
+    <div className="rounded-2xl border border-border bg-card px-4 py-3">
+      <p className="text-[11px] uppercase tracking-wide text-muted">{label}</p>
       <p className="mt-1 text-xl font-semibold tabular-nums">{value}</p>
     </div>
   );
@@ -335,10 +335,10 @@ function Tile({ label, value }: { label: string; value: string }) {
 
 function Empty({ title, hint, href, cta }: { title: string; hint: string; href: string; cta: string }) {
   return (
-    <div className="rounded-2xl border border-dashed border-white/12 px-6 py-12 text-center">
+    <div className="rounded-2xl border border-dashed border-border px-6 py-12 text-center">
       <p className="font-medium">{title}</p>
-      <p className="mt-1 text-sm text-zinc-500">{hint}</p>
-      <Link href={href} className="mt-4 inline-block text-sm text-saffron">
+      <p className="mt-1 text-sm text-muted">{hint}</p>
+      <Link href={href} className="mt-4 inline-block text-sm text-indigo-2">
         {cta} →
       </Link>
     </div>
