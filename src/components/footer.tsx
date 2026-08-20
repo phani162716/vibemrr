@@ -22,6 +22,9 @@ export function Footer() {
             <Link href="/search" className="text-foreground hover:text-indigo-2">
               Search
             </Link>
+            <Link href="/hub" className="text-foreground hover:text-indigo-2">
+              VibersHub
+            </Link>
             <Link href="/profile" className="text-foreground hover:text-indigo-2">
               Profile
             </Link>

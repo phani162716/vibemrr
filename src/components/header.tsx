@@ -10,6 +10,7 @@ import { IconPlus, IconX } from "./icons";
 const NAV = [
   { href: "/market", label: "Explore" },
   { href: "/search", label: "Search" },
+  { href: "/hub", label: "Hub" },
   { href: "/dashboard", label: "Dashboard" },
 ];
 

@@ -33,6 +33,9 @@ export default function HomePage() {
             <Link href="/add" className="btn-ghost">
               List a product
             </Link>
+            <Link href="/hub" className="btn-ghost">
+              VibersHub
+            </Link>
           </div>
         </div>
       </section>

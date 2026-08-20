@@ -14,6 +14,8 @@ import type {
   BidStatus,
   Currency,
   DealStatus,
+  HubOffer,
+  HubRequest,
   Notice,
   Order,
   Product,
@@ -42,7 +44,7 @@ import {
 } from "@/lib/local-market";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/client";
-import { lookupSellerContact, resolveUserWhatsapp, saveMyProfile } from "@/lib/profile";
+import { lookupProfileWhatsapp, lookupSellerContact, resolveUserWhatsapp, saveMyProfile } from "@/lib/profile";
 import { validWhatsApp } from "@/lib/whatsapp";
 
 type Ctx = {
@@ -78,6 +80,8 @@ type Ctx = {
   addReview: (productId: string, orderId: string, rating: number, comment: string) => Promise<void>;
   notices: Notice[];
   markNoticesRead: () => void;
+  pushNotice: (n: Omit<Notice, "id" | "createdAt" | "read">) => void;
+  acceptHubOffer: (request: HubRequest, offer: HubOffer) => Promise<Order>;
 };
 
 const AppCtx = createContext<Ctx | null>(null);
@@ -931,6 +935,86 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
+  const acceptHubOffer = useCallback(
+    async (request: HubRequest, offer: HubOffer) => {
+      if (!session) throw new Error("Sign in");
+      const buyerKey = session.id || session.email;
+      if (buyerKey !== request.buyerId) throw new Error("Only the buyer can accept this offer.");
+      if (!session.whatsapp) throw new Error("Add WhatsApp in Settings (91XXXXXXXXXX) before accepting.");
+      const own = validWhatsApp(session.whatsapp);
+      const seller = await lookupSellerContact({
+        ownerId: offer.sellerId,
+        ownerName: offer.sellerName,
+      });
+      const buyerWa = own || (await lookupProfileWhatsapp(session.id));
+      const now = new Date().toISOString();
+      const order: Order = {
+        id: uid(),
+        productId: request.id,
+        productName: request.title,
+        productSlug: `hub-${request.id}`,
+        buyerId: session.id,
+        buyerName: session.name,
+        buyerEmail: session.email,
+        buyerWhatsapp: buyerWa,
+        sellerId: seller.ownerId || offer.sellerId,
+        sellerName: seller.ownerName || offer.sellerName,
+        sellerWhatsapp: seller.whatsapp,
+        amountInr: offer.amountInr,
+        paymentStatus: "pending",
+        dealStatus: "accepted",
+        acceptedAt: now,
+        handover: {},
+        createdAt: now,
+      };
+      setOrders((cur) => {
+        const next = [order, ...cur];
+        localSaveOrders(next);
+        return next;
+      });
+      if (persist === "sb") {
+        const sb = createClient();
+        const row: Record<string, unknown> = {
+          id: order.id,
+          product_id: null,
+          product_name: order.productName,
+          buyer_id: order.buyerId ?? null,
+          seller_id: order.sellerId ?? null,
+          amount_inr: order.amountInr,
+          payment_status: "pending",
+          deal_status: "accepted",
+          accepted_at: now,
+          seller_whatsapp: order.sellerWhatsapp ?? null,
+          buyer_whatsapp: order.buyerWhatsapp ?? null,
+          buyer_name: order.buyerName ?? null,
+          seller_name: order.sellerName ?? null,
+          buyer_email: order.buyerEmail ?? null,
+        };
+        const { error } = await sb.from("orders").insert(row);
+        if (error) {
+          await sb.from("orders").insert({
+            id: order.id,
+            product_name: order.productName,
+            buyer_id: order.buyerId ?? null,
+            seller_id: order.sellerId ?? null,
+            amount_inr: order.amountInr,
+            payment_status: "pending",
+          });
+        }
+      }
+      if (offer.sellerId) {
+        notify({
+          userId: offer.sellerId,
+          title: "Hub offer accepted",
+          body: `${session.name} accepted your offer on “${request.title}”. Continue on WhatsApp.`,
+          href: `/checkout/${order.id}`,
+        });
+      }
+      return order;
+    },
+    [session, persist, notify]
+  );
+
   const value = useMemo(
     () => ({
       ready,
@@ -960,6 +1044,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       addReview,
       notices,
       markNoticesRead,
+      pushNotice: notify,
+      acceptHubOffer,
     }),
     [
       ready,
@@ -989,6 +1075,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       addReview,
       notices,
       markNoticesRead,
+      notify,
+      acceptHubOffer,
     ]
   );
 

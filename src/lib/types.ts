@@ -130,6 +130,39 @@ export interface Notice {
   createdAt: string;
 }
 
+export type HubRequestStatus = "open" | "awarded" | "closed";
+export type HubOfferStatus = "pending" | "accepted" | "rejected";
+
+export interface HubMessage {
+  id: string;
+  authorId: string;
+  authorName: string;
+  body: string;
+  createdAt: string;
+}
+
+export interface HubRequest {
+  id: string;
+  buyerId: string;
+  buyerName: string;
+  title: string;
+  description: string;
+  budgetInr: number;
+  status: HubRequestStatus;
+  createdAt: string;
+}
+
+export interface HubOffer {
+  id: string;
+  requestId: string;
+  sellerId: string;
+  sellerName: string;
+  amountInr: number;
+  message: string;
+  status: HubOfferStatus;
+  createdAt: string;
+}
+
 export const PRODUCT_TYPES: ProductType[] = [
   "Website",
   "Web App / SaaS",
