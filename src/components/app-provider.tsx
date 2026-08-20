@@ -42,7 +42,8 @@ import {
 } from "@/lib/local-market";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/client";
-import { saveMyProfile } from "@/lib/profile";
+import { resolveUserWhatsapp, saveMyProfile } from "@/lib/profile";
+import { sameWhatsApp, validWhatsApp } from "@/lib/whatsapp";
 
 type Ctx = {
   ready: boolean;
@@ -138,6 +139,23 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       reviewCount: 0,
       sellerWhatsapp: row.seller_whatsapp ? String(row.seller_whatsapp) : undefined,
     }));
+    const ownerIds = [...new Set(remote.map((p) => p.ownerId).filter((id): id is string => Boolean(id)))];
+    if (ownerIds.length) {
+      const { data: waRows } = await sb.from("profiles").select("id, whatsapp").in("id", ownerIds);
+      if (waRows) {
+        const waMap = new Map<string, string>();
+        for (const row of waRows) {
+          const rec = row as { id?: string; whatsapp?: string | null };
+          const wa = validWhatsApp(rec.whatsapp);
+          if (rec.id && wa) waMap.set(String(rec.id), wa);
+        }
+        for (const p of remote) {
+          if (!p.ownerId) continue;
+          const fromProfile = waMap.get(p.ownerId);
+          if (!validWhatsApp(p.sellerWhatsapp) && fromProfile) p.sellerWhatsapp = fromProfile;
+        }
+      }
+    }
     setProducts(mergeProducts(remote, localProducts().filter((p) => !p.isDemo)));
   }, []);
 
@@ -380,6 +398,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       };
       setSession(next);
       localStorage.setItem("vibemrr.session", JSON.stringify(next));
+      if (next.whatsapp && session.id) {
+        setProducts((cur) => {
+          const mapped = cur.map((p) => (p.ownerId === session.id ? { ...p, sellerWhatsapp: next.whatsapp } : p));
+          for (const p of mapped) {
+            if (p.ownerId === session.id && !p.isDemo) localUpsertProduct(p);
+          }
+          return mapped;
+        });
+      }
       if (session.id && isSupabaseConfigured()) {
         await saveMyProfile({
           name: next.name,
@@ -388,6 +415,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           bio: next.bio,
           role: next.role,
         });
+        if (next.whatsapp) {
+          try {
+            await createClient()
+              .from("products")
+              .update({ seller_whatsapp: next.whatsapp })
+              .eq("owner_id", session.id);
+          } catch {
+            /* optional stamp — profile save already succeeded */
+          }
+        }
       }
     },
     [session]
@@ -404,7 +441,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const upsertProduct = useCallback(
     async (p: Product) => {
-      const withWa = { ...p, sellerWhatsapp: p.sellerWhatsapp || session?.whatsapp };
+      const actingAsOwner = !p.ownerId || p.ownerId === session?.id;
+      const withWa = {
+        ...p,
+        sellerWhatsapp: p.sellerWhatsapp || (actingAsOwner ? session?.whatsapp : undefined),
+      };
       localUpsertProduct(withWa);
       setProducts((cur) => mergeProducts([], [withWa, ...cur.filter((x) => x.slug !== p.slug)]));
       if (persist === "sb" && session?.id) {
@@ -641,12 +682,23 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }
       if (kind === "accept" && current) {
         const product = products.find((p) => p.slug === current.productSlug);
-        const wa = (session.id === current.sellerId ? session.whatsapp : product?.sellerWhatsapp) || product?.sellerWhatsapp || session.whatsapp;
-        if (!wa) {
-          throw new Error("Add your WhatsApp in Settings (91XXXXXXXXXX) before accepting. Buyers contact you only after accept.");
+        const sellerIsActor = !!session.id && session.id === current.sellerId;
+        const own = validWhatsApp(session.whatsapp);
+        const sellerId = current.sellerId || product?.ownerId;
+        const sellerWa = sellerIsActor
+          ? own
+          : await resolveUserWhatsapp(sellerId, product?.sellerWhatsapp, own);
+        if (!sellerWa) {
+          throw new Error(
+            sellerIsActor
+              ? "Add your WhatsApp in Settings (91XXXXXXXXXX) before accepting. Buyers contact you only after accept."
+              : "The seller's WhatsApp is missing. They should add it in Settings (91XXXXXXXXXX)."
+          );
         }
+        const buyerWa =
+          (session.id === current.buyerId ? own : undefined) ||
+          (await resolveUserWhatsapp(current.buyerId, current.buyerWhatsapp, sellerWa));
         const now = new Date().toISOString();
-        const sellerIsActor = session.id === current.sellerId;
         const deal: Order = {
           id: uid(),
           productId: current.productId,
@@ -657,8 +709,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           buyerEmail: current.buyerEmail,
           sellerId: current.sellerId || session.id,
           sellerName: sellerIsActor ? session.name : product?.ownerName,
-          sellerWhatsapp: wa,
-          buyerWhatsapp: current.buyerWhatsapp,
+          sellerWhatsapp: sellerWa,
+          buyerWhatsapp: buyerWa,
           bidId: current.id,
           amountInr: amountInr ?? current.amountInr,
           paymentStatus: "pending",
@@ -709,6 +761,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     async (product: Product, amountInr: number, bidId?: string) => {
       if (!session) throw new Error("Sign in to buy");
       if (!session.whatsapp) throw new Error("Add WhatsApp in Settings (91XXXXXXXXXX) before buying.");
+      const own = validWhatsApp(session.whatsapp);
+      const listed = validWhatsApp(product.sellerWhatsapp);
+      const sellerFromListing = listed && !sameWhatsApp(listed, own) ? listed : undefined;
+      const sellerWhatsapp = await resolveUserWhatsapp(
+        product.ownerId && product.ownerId !== session.id ? product.ownerId : undefined,
+        sellerFromListing,
+        own
+      );
       const now = new Date().toISOString();
       const order: Order = {
         id: uid(),
@@ -718,10 +778,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         buyerId: session.id,
         buyerName: session.name,
         buyerEmail: session.email,
-        buyerWhatsapp: session.whatsapp,
+        buyerWhatsapp: own,
         sellerId: product.ownerId,
         sellerName: product.ownerName,
-        sellerWhatsapp: product.sellerWhatsapp,
+        sellerWhatsapp,
         bidId,
         amountInr,
         paymentStatus: "pending",

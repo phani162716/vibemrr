@@ -1,6 +1,33 @@
 "use client";
 
 import { createClient } from "@/lib/supabase/client";
+import { isSupabaseConfigured } from "@/lib/supabase/env";
+import { sameWhatsApp, validWhatsApp } from "@/lib/whatsapp";
+
+/** Other user's WhatsApp from profiles. Never returns your own number. */
+export async function lookupProfileWhatsapp(userId?: string | null): Promise<string | undefined> {
+  if (!userId || !isSupabaseConfigured()) return undefined;
+  try {
+    const sb = createClient();
+    const { data, error } = await sb.from("profiles").select("whatsapp").eq("id", userId).maybeSingle();
+    if (error || !data?.whatsapp) return undefined;
+    return validWhatsApp(String(data.whatsapp));
+  } catch {
+    return undefined;
+  }
+}
+
+export async function resolveUserWhatsapp(
+  userId?: string | null,
+  fallback?: string | null,
+  not?: string | null
+): Promise<string | undefined> {
+  const fb = validWhatsApp(fallback);
+  if (fb && !sameWhatsApp(fb, not)) return fb;
+  const looked = await lookupProfileWhatsapp(userId);
+  if (looked && !sameWhatsApp(looked, not)) return looked;
+  return undefined;
+}
 
 export async function saveMyProfile(input: {
   name?: string;

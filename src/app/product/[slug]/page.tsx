@@ -75,11 +75,20 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
     }
     try {
       const order = await checkout(product, product.askingInr);
-      const { buyerToSellerMessage, whatsappHref } = await import("@/lib/whatsapp");
-      const href = order.sellerWhatsapp
-        ? whatsappHref(order.sellerWhatsapp, buyerToSellerMessage(order.productName, order.amountInr))
-        : null;
-      if (href) window.open(href, "_blank");
+      const { buyerToSellerMessage, peerWhatsAppHref } = await import("@/lib/whatsapp");
+      const href = peerWhatsAppHref(
+        order.sellerWhatsapp,
+        session.whatsapp,
+        buyerToSellerMessage(order.productName, order.amountInr)
+      );
+      if (href) {
+        try {
+          sessionStorage.setItem(`wa-opened-${order.id}-b`, "1");
+        } catch {
+          /* ignore */
+        }
+        window.open(href, "_blank");
+      }
       router.push(`/checkout/${order.id}`);
     } catch (error) {
       setErr(error instanceof Error ? error.message : "Could not start deal");
@@ -179,6 +188,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                 <button onClick={() => setOfferOpen(true)} className="btn-accent w-full bg-accent-2 hover:bg-accent">
                   Make an offer
                 </button>
+                {err && <p className="text-xs text-danger">{err}</p>}
                 <button
                   onClick={() => void toggleInterest(product).catch((e) => alert(e.message))}
                   className="btn-ghost w-full"

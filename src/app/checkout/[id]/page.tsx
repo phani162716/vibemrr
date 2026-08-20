@@ -1,11 +1,11 @@
 "use client";
 
-import { use, useEffect, useMemo } from "react";
+import { use, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useApp } from "@/components/app-provider";
 import { moneyFull } from "@/lib/format";
-import { buyerToSellerMessage, sellerToBuyerMessage, whatsappHref } from "@/lib/whatsapp";
-import { useState } from "react";
+import { lookupProfileWhatsapp } from "@/lib/profile";
+import { buyerToSellerMessage, peerWhatsAppHref, sameWhatsApp, sellerToBuyerMessage } from "@/lib/whatsapp";
 
 export default function DealPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -13,23 +13,62 @@ export default function DealPage({ params }: { params: Promise<{ id: string }> }
   const [stars, setStars] = useState(5);
   const [comment, setComment] = useState("");
   const [reviewed, setReviewed] = useState(false);
+  const [peerOverride, setPeerOverride] = useState<string | undefined>();
+  const [looked, setLooked] = useState(false);
   const order = orders.find((o) => o.id === id);
-  const isBuyer = !!session && !!order && (session.id === order.buyerId || session.email === order.buyerEmail);
-  const isSeller = !!session && !!order && session.id === order.sellerId;
+  const isBuyer =
+    !!session &&
+    !!order &&
+    ((!!session.id && session.id === order.buyerId) ||
+      (!!session.email && !!order.buyerEmail && session.email === order.buyerEmail));
+  const isSeller = !!session && !!order && !!session.id && session.id === order.sellerId;
   const isParty = isBuyer || isSeller;
 
-  const peerPhone = isBuyer ? order?.sellerWhatsapp : order?.buyerWhatsapp;
+  const storedPeer = isBuyer ? order?.sellerWhatsapp : isSeller ? order?.buyerWhatsapp : undefined;
+  const peerPhone = peerOverride || storedPeer;
   const msg = order
     ? isBuyer
       ? buyerToSellerMessage(order.productName, order.amountInr)
       : sellerToBuyerMessage(order.productName, order.amountInr)
     : "";
-  const wa = peerPhone ? whatsappHref(peerPhone, msg) : null;
+  const wa = peerWhatsAppHref(peerPhone, session?.whatsapp, msg);
   const open = order?.dealStatus === "accepted";
 
   useEffect(() => {
-    if (!order || !open || !wa) return;
-    const key = `wa-opened-${order.id}-${isBuyer ? "b" : "s"}`;
+    setPeerOverride(undefined);
+    setLooked(false);
+  }, [id]);
+
+  useEffect(() => {
+    if (!order || !session || (!isBuyer && !isSeller)) return;
+    const existing = isBuyer ? order.sellerWhatsapp : order.buyerWhatsapp;
+    if (existing && !sameWhatsApp(existing, session.whatsapp)) {
+      setLooked(true);
+      return;
+    }
+    const otherId = isBuyer ? order.sellerId : order.buyerId;
+    if (!otherId) {
+      setLooked(true);
+      return;
+    }
+    let cancelled = false;
+    lookupProfileWhatsapp(otherId)
+      .then((n) => {
+        if (cancelled) return;
+        if (n && !sameWhatsApp(n, session.whatsapp)) setPeerOverride(n);
+        setLooked(true);
+      })
+      .catch(() => {
+        if (!cancelled) setLooked(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [order, isBuyer, isSeller, session]);
+
+  useEffect(() => {
+    if (!order || !open || !wa || !isBuyer) return;
+    const key = `wa-opened-${order.id}-b`;
     if (sessionStorage.getItem(key)) return;
     sessionStorage.setItem(key, "1");
     window.open(wa, "_blank");
@@ -81,6 +120,8 @@ export default function DealPage({ params }: { params: Promise<{ id: string }> }
             <a href={wa} target="_blank" rel="noreferrer" className="btn-accent flex w-full">
               Continue on WhatsApp ({isBuyer ? "message seller" : "message buyer"})
             </a>
+          ) : !looked ? (
+            <p className="rounded-xl border border-border bg-white p-3 text-sm text-muted">Finding the {who}&apos;s WhatsApp…</p>
           ) : (
             <p className="rounded-xl border border-border bg-white p-3 text-sm text-muted">
               The {who}&apos;s WhatsApp is missing. They should add it in Settings (91XXXXXXXXXX).
