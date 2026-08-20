@@ -44,9 +44,16 @@ export default function SettingsPage() {
           <input value={handle} onChange={(e) => setHandle(e.target.value)} className="mt-1 w-full rounded-lg border border-border bg-white px-3 py-2 text-sm" />
         </label>
         <label className="block text-xs text-muted">
-          WhatsApp
-          <input value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} className="mt-1 w-full rounded-lg border border-border bg-white px-3 py-2 text-sm" />
+          WhatsApp (required, with country code)
+          <input
+            required
+            value={whatsapp}
+            onChange={(e) => setWhatsapp(e.target.value)}
+            placeholder="91XXXXXXXXXX"
+            className="mt-1 w-full rounded-lg border border-border bg-white px-3 py-2 text-sm"
+          />
         </label>
+        <p className="text-[11px] text-muted">Never public. Used only after you accept a bid or someone buys at asking price.</p>
         <label className="block text-xs text-muted">
           Bio
           <textarea value={bio} onChange={(e) => setBio(e.target.value)} rows={3} className="mt-1 w-full rounded-lg border border-border bg-white px-3 py-2 text-sm" />

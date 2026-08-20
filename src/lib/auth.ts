@@ -26,15 +26,19 @@ export async function signInWithMagicLink(email: string, next = "/dashboard") {
   if (error) throw error;
 }
 
-export async function signUpWithPassword(email: string, password: string, name?: string) {
+export async function signUpWithPassword(email: string, password: string, name?: string, whatsapp?: string) {
   const supabase = createClient();
   const origin = window.location.origin;
+  const digits = (whatsapp ?? "").replace(/\D/g, "");
+  if (digits.length < 10) {
+    throw new Error("Enter a WhatsApp number with country code, e.g. 91XXXXXXXXXX.");
+  }
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
       emailRedirectTo: `${origin}/auth/callback?next=/dashboard`,
-      data: { full_name: name || email.split("@")[0] },
+      data: { full_name: name || email.split("@")[0], whatsapp: digits },
     },
   });
   if (error) throw error;
@@ -46,6 +50,16 @@ export async function signUpWithPassword(email: string, password: string, name?:
       "Account created, but email confirmation is on. Check your inbox, or use Forgot password to set a new password and get in."
     );
   }
+  if (data.user) {
+    await supabase.from("profiles").upsert({
+      id: data.user.id,
+      email,
+      name: name || email.split("@")[0],
+      whatsapp: digits,
+      updated_at: new Date().toISOString(),
+    });
+  }
+  return digits;
 }
 
 export async function signInWithPassword(email: string, password: string) {

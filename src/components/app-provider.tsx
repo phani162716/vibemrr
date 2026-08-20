@@ -61,7 +61,12 @@ type Ctx = {
   toggleInterest: (product: Product) => Promise<void>;
   bids: Bid[];
   placeBid: (product: Product, amountInr: number, message: string) => Promise<void>;
-  respondBid: (bidId: string, kind: "accept" | "reject" | "counter", amountInr?: number, message?: string) => Promise<void>;
+  respondBid: (
+    bidId: string,
+    kind: "accept" | "reject" | "counter",
+    amountInr?: number,
+    message?: string
+  ) => Promise<Order | undefined>;
   orders: Order[];
   checkout: (product: Product, amountInr: number, bidId?: string) => Promise<Order>;
   markPaid: (orderId: string) => Promise<void>;
@@ -256,7 +261,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
               (typeof user.user_metadata?.full_name === "string" ? user.user_metadata.full_name : "") ||
               user.email?.split("@")[0] ||
               "User",
-            whatsapp: profile?.whatsapp ?? localSess?.whatsapp,
+            whatsapp:
+              profile?.whatsapp ||
+              localSess?.whatsapp ||
+              (typeof user.user_metadata?.whatsapp === "string" ? user.user_metadata.whatsapp : undefined),
             avatarUrl: profile?.avatar_url ?? localSess?.avatarUrl,
             role: (profile?.primary_role as Role) || localSess?.role,
             handle: profile?.handle ?? localSess?.handle ?? user.email?.split("@")[0],
@@ -368,8 +376,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const upsertProduct = useCallback(
     async (p: Product) => {
-      localUpsertProduct(p);
-      setProducts((cur) => mergeProducts([], [p, ...cur.filter((x) => x.slug !== p.slug)]));
+      const withWa = { ...p, sellerWhatsapp: p.sellerWhatsapp || session?.whatsapp };
+      localUpsertProduct(withWa);
+      setProducts((cur) => mergeProducts([], [withWa, ...cur.filter((x) => x.slug !== p.slug)]));
       if (persist === "sb" && session?.id) {
         await createClient().from("products").upsert({
           id: p.id.match(/^[0-9a-f-]{36}$/i) ? p.id : undefined,
@@ -389,7 +398,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           website_url: p.websiteUrl ?? null,
           status: p.status,
           is_demo: false,
-          seller_whatsapp: p.sellerWhatsapp ?? session.whatsapp ?? null,
+          seller_whatsapp: withWa.sellerWhatsapp ?? null,
           updated_at: new Date().toISOString(),
         });
       }
@@ -587,9 +596,27 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           message: row.message,
           kind,
         });
+        if (kind === "counter" && current) {
+          const sellerActing = session.id === current.sellerId;
+          const otherId = sellerActing ? current.buyerId : current.sellerId;
+          if (otherId) {
+            await sb.from("notifications").insert({
+              user_id: otherId,
+              title: sellerActing ? "Seller counteroffer" : "Buyer counteroffer",
+              body: `${session.name} countered ${current.productName} at ₹${amountInr ?? current.amountInr}`,
+              href: "/dashboard?tab=bids",
+            });
+          }
+        }
+      }
       if (kind === "accept" && current) {
         const product = products.find((p) => p.slug === current.productSlug);
+        const wa = (session.id === current.sellerId ? session.whatsapp : product?.sellerWhatsapp) || product?.sellerWhatsapp || session.whatsapp;
+        if (!wa) {
+          throw new Error("Add your WhatsApp in Settings (91XXXXXXXXXX) before accepting. Buyers contact you only after accept.");
+        }
         const now = new Date().toISOString();
+        const sellerIsActor = session.id === current.sellerId;
         const deal: Order = {
           id: uid(),
           productId: current.productId,
@@ -599,8 +626,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           buyerName: current.buyerName,
           buyerEmail: current.buyerEmail,
           sellerId: current.sellerId || session.id,
-          sellerName: session.name,
-          sellerWhatsapp: session.whatsapp || product?.sellerWhatsapp,
+          sellerName: sellerIsActor ? session.name : product?.ownerName,
+          sellerWhatsapp: wa,
           bidId: current.id,
           amountInr: amountInr ?? current.amountInr,
           paymentStatus: "pending",
@@ -618,7 +645,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           notify({
             userId: current.buyerId,
             title: "Offer accepted",
-            body: `Your offer on ${current.productName} was accepted. Open the deal to continue on WhatsApp.`,
+            body: `Your offer on ${current.productName} was accepted. Continue on WhatsApp.`,
             href: `/checkout/${deal.id}`,
           });
         }
@@ -640,19 +667,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             buyer_email: deal.buyerEmail ?? null,
           });
         }
-      }
-      if (kind === "counter" && current) {
-          const sellerActing = session.id === current.sellerId;
-          const otherId = sellerActing ? current.buyerId : current.sellerId;
-          if (otherId) {
-            await sb.from("notifications").insert({
-              user_id: otherId,
-              title: sellerActing ? "Seller counteroffer" : "Buyer counteroffer",
-              body: `${session.name} countered ${current.productName} at ₹${amountInr ?? current.amountInr}`,
-              href: "/dashboard?tab=bids",
-            });
-          }
-        }
+        return deal;
       }
     },
     [session, bids, persist, notify, products]

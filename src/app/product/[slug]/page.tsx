@@ -68,8 +68,12 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
       return;
     }
     if (!product) return;
+    if (!product.sellerWhatsapp) {
+      setErr("Seller has no WhatsApp on file. They must add it in Settings.");
+      return;
+    }
     const order = await checkout(product, product.askingInr);
-    router.push(`/checkout/${order.id}`);
+    router.push(`/checkout/${order.id}?wa=1`);
   }
 
   return (

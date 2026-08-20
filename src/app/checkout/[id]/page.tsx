@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useState } from "react";
+import { use, useEffect, useState } from "react";
 import Link from "next/link";
 import { useApp } from "@/components/app-provider";
 import { moneyFull } from "@/lib/format";
@@ -13,14 +13,26 @@ export default function DealPage({ params }: { params: Promise<{ id: string }> }
   const [comment, setComment] = useState("");
   const [reviewed, setReviewed] = useState(false);
   const order = orders.find((o) => o.id === id);
-  const isParty = session && order && (session.id === order.buyerId || session.id === order.sellerId);
-  const isBuyer = session && order && session.id === order.buyerId;
+  const isBuyer = !!session && !!order && (session.id === order.buyerId || session.email === order.buyerEmail);
+  const isSeller = !!session && !!order && session.id === order.sellerId;
+  const isParty = isBuyer || isSeller;
+  const msg = order ? dealWhatsAppMessage(order.productName, order.amountInr) : "";
+  const wa = order?.sellerWhatsapp ? whatsappHref(order.sellerWhatsapp, msg) : null;
+  const open = order?.dealStatus === "accepted";
 
-  if (!order || !isParty) {
+  useEffect(() => {
+    if (!order || !open || !wa || !isBuyer) return;
+    const key = `wa-opened-${order.id}`;
+    if (sessionStorage.getItem(key)) return;
+    sessionStorage.setItem(key, "1");
+    window.location.assign(wa);
+  }, [order, open, wa, isBuyer]);
+
+  if (!order || !session) {
     return (
       <div className="mx-auto max-w-lg px-4 py-24 text-center">
         <h1 className="text-2xl font-semibold">Deal not found</h1>
-        <p className="mt-2 text-sm text-muted">Deals are private to the buyer and seller.</p>
+        <p className="mt-2 text-sm text-muted">Sign in as the buyer or seller to view this deal.</p>
         <Link href="/dashboard" className="mt-4 inline-block text-indigo-2">
           Dashboard
         </Link>
@@ -28,9 +40,16 @@ export default function DealPage({ params }: { params: Promise<{ id: string }> }
     );
   }
 
-  const msg = dealWhatsAppMessage(order.productName, order.amountInr);
-  const wa = order.sellerWhatsapp ? whatsappHref(order.sellerWhatsapp, msg) : null;
-  const open = order.dealStatus === "accepted";
+  if (!isParty) {
+    return (
+      <div className="mx-auto max-w-lg px-4 py-24 text-center">
+        <h1 className="text-2xl font-semibold">This deal is private</h1>
+        <Link href="/dashboard" className="mt-4 inline-block text-indigo-2">
+          Dashboard
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-lg px-4 py-12">
@@ -45,8 +64,7 @@ export default function DealPage({ params }: { params: Promise<{ id: string }> }
         <Row k="Status" v={order.dealStatus} />
       </dl>
       <p className="mt-4 text-sm text-muted">
-        Year one: complete payment and handover directly. Vibers recorded this deal before any WhatsApp
-        chat. The seller number is not public.
+        Deal is recorded on Vibers. Seller WhatsApp is not public. Chat opens only after accept or Buy now.
       </p>
 
       {open && (
@@ -57,22 +75,15 @@ export default function DealPage({ params }: { params: Promise<{ id: string }> }
             </a>
           ) : (
             <p className="rounded-xl border border-border bg-white p-3 text-sm text-muted">
-              Seller hasn&apos;t added a WhatsApp number in Settings yet. Ask them to add it, then
-              refresh this page.
+              Seller WhatsApp is missing. Seller: add it in Settings (91XXXXXXXXXX), then refresh.
             </p>
           )}
-          <p className="text-xs text-muted">
-            Prefilled message: “{msg}”
-          </p>
+          {isBuyer && wa && <p className="text-xs text-muted">WhatsApp should open automatically with a prefilled message.</p>}
           <div className="flex gap-2">
             <button type="button" onClick={() => void markDeal(order.id, "completed")} className="btn-primary flex-1">
               Mark deal completed
             </button>
-            <button
-              type="button"
-              onClick={() => void markDeal(order.id, "cancelled")}
-              className="btn-ghost flex-1 text-danger"
-            >
+            <button type="button" onClick={() => void markDeal(order.id, "cancelled")} className="btn-ghost flex-1 text-danger">
               Deal cancelled
             </button>
           </div>
@@ -107,9 +118,7 @@ export default function DealPage({ params }: { params: Promise<{ id: string }> }
         </div>
       )}
 
-      {order.dealStatus === "cancelled" && (
-        <p className="mt-6 text-sm text-danger">This deal was cancelled.</p>
-      )}
+      {order.dealStatus === "cancelled" && <p className="mt-6 text-sm text-danger">This deal was cancelled.</p>}
     </div>
   );
 }

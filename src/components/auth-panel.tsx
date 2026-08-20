@@ -15,6 +15,7 @@ export function AuthPanel({ next = "/dashboard" }: { next?: string }) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [whatsapp, setWhatsapp] = useState("");
   const [isNew, setIsNew] = useState(false);
   const [pending, setPending] = useState(false);
   const [sent, setSent] = useState(false);
@@ -27,8 +28,21 @@ export function AuthPanel({ next = "/dashboard" }: { next?: string }) {
     setError(null);
     setPending(true);
     try {
-      if (isNew) await signUpWithPassword(email, password, name);
-      else await signInWithPassword(email, password);
+      if (isNew) {
+        const digits = await signUpWithPassword(email, password, name, whatsapp);
+        try {
+          localStorage.setItem(
+            "vibemrr.session",
+            JSON.stringify({
+              email,
+              name: name || email.split("@")[0],
+              whatsapp: digits,
+            })
+          );
+        } catch {
+          /* ignore */
+        }
+      } else await signInWithPassword(email, password);
       window.location.assign(next);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Auth failed");
@@ -149,6 +163,21 @@ export function AuthPanel({ next = "/dashboard" }: { next?: string }) {
             placeholder="Password (6+ characters)"
             className={field}
           />
+          {isNew && (
+            <>
+              <input
+                required
+                value={whatsapp}
+                onChange={(e) => setWhatsapp(e.target.value)}
+                placeholder="WhatsApp with country code (91XXXXXXXXXX)"
+                className={field}
+              />
+              <p className="text-[11px] text-muted">
+                Required. Never shown publicly. Buyers only open WhatsApp after you accept an offer or
+                they buy at asking price.
+              </p>
+            </>
+          )}
           <button
             type="submit"
             disabled={pending}

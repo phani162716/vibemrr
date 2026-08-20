@@ -39,6 +39,7 @@ function DashboardInner() {
   const [tab, setTab] = useState<Tab>("overview");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [wa, setWa] = useState("");
 
   useEffect(() => {
     const t = params.get("tab") as Tab | null;
@@ -80,11 +81,18 @@ function DashboardInner() {
             className="mt-6 space-y-3"
             onSubmit={(e) => {
               e.preventDefault();
-              signIn({ name: name || "User", email: email || "you@vibers.co" });
+              signIn({ name: name || "User", email: email || "you@vibers.co", whatsapp: wa.replace(/\D/g, "") });
             }}
           >
             <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Name" className="w-full rounded-lg border border-border bg-white px-3 py-2 text-sm" />
             <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" className="w-full rounded-lg border border-border bg-white px-3 py-2 text-sm" />
+            <input
+              required
+              value={wa}
+              placeholder="WhatsApp 91XXXXXXXXXX"
+              onChange={(e) => setWa(e.target.value)}
+              className="w-full rounded-lg border border-border bg-white px-3 py-2 text-sm"
+            />
             <button className="w-full rounded-xl bg-indigo py-2.5 text-sm font-semibold text-white">Continue</button>
           </form>
         )}
@@ -251,7 +259,18 @@ function DashboardInner() {
               </ol>
               {seller && b.status !== "accepted" && b.status !== "rejected" && b.status !== "purchased" && (
                 <div className="mt-3 flex flex-wrap gap-2">
-                  <button onClick={() => void respondBid(b.id, "accept")} className="rounded-lg bg-indigo px-3 py-1 text-xs font-semibold text-white">
+                  <button
+                    onClick={async () => {
+                      if (!session.whatsapp) {
+                        alert("Add WhatsApp in Settings first (91XXXXXXXXXX).");
+                        router.push("/settings");
+                        return;
+                      }
+                      const deal = await respondBid(b.id, "accept");
+                      if (deal) router.push(`/checkout/${deal.id}`);
+                    }}
+                    className="rounded-lg bg-indigo px-3 py-1 text-xs font-semibold text-white"
+                  >
                     Accept
                   </button>
                   <button onClick={() => void respondBid(b.id, "reject")} className="rounded-lg border border-border px-3 py-1 text-xs">
@@ -271,7 +290,13 @@ function DashboardInner() {
               {!seller && b.status !== "accepted" && b.status !== "rejected" && b.status !== "purchased" && (
                 <div className="mt-3 flex flex-wrap gap-2">
                   {b.messages[b.messages.length - 1]?.role === "seller" && (
-                    <button onClick={() => void respondBid(b.id, "accept")} className="rounded-lg bg-indigo px-3 py-1 text-xs font-semibold text-white">
+                    <button
+                      onClick={async () => {
+                        const deal = await respondBid(b.id, "accept");
+                        if (deal) router.push(`/checkout/${deal.id}`);
+                      }}
+                      className="rounded-lg bg-indigo px-3 py-1 text-xs font-semibold text-white"
+                    >
                       Accept counter
                     </button>
                   )}
