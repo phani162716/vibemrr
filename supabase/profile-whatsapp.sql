@@ -70,6 +70,8 @@ revoke all on function public.save_my_profile(text, text, text, text, text) from
 grant execute on function public.save_my_profile(text, text, text, text, text) to authenticated;
 grant execute on function public.save_my_profile(text, text, text, text, text) to anon;
 
+notify pgrst, 'reload schema';
+
 create or replace function public.handle_new_user()
 returns trigger
 language plpgsql

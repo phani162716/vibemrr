@@ -50,14 +50,9 @@ export async function signUpWithPassword(email: string, password: string, name?:
       "Account created, but email confirmation is on. Check your inbox, or use Forgot password to set a new password and get in."
     );
   }
-  if (data.user) {
-    await supabase.rpc("save_my_profile", {
-      p_name: name || email.split("@")[0],
-      p_whatsapp: digits,
-      p_handle: null,
-      p_bio: null,
-      p_role: null,
-    });
+  if (data.user && data.session) {
+    const { saveMyProfile } = await import("./profile");
+    await saveMyProfile({ name: name || email.split("@")[0], whatsapp: digits }).catch(() => undefined);
   }
   return digits;
 }
