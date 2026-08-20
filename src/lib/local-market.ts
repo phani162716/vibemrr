@@ -1,5 +1,5 @@
 import type { Bid, Notice, Order, Product, Review } from "./types";
-import { SEED_PRODUCTS } from "./products-seed";
+import { RETIRED_TEST_SLUGS } from "./products-seed";
 
 const K = {
   extra: "vibers.products",
@@ -10,6 +10,27 @@ const K = {
   notices: "vibers.notices",
   views: "vibers.views",
 };
+
+const LEGACY_KEYS = [
+  "vibers.products",
+  "vibers.bids",
+  "vibers.interests",
+  "vibers.orders",
+  "vibers.reviews",
+  "vibers.notices",
+  "vibers.views",
+  "vibers.hub.messages",
+  "vibers.hub.requests",
+  "vibers.hub.offers",
+];
+
+/** Drop local demo/test listings, bids, orders and Hub posts once. Keeps the signed-in session. */
+export function wipeLegacyLocalData() {
+  if (typeof window === "undefined") return;
+  if (localStorage.getItem("vibers.data.v2") === "1") return;
+  for (const key of LEGACY_KEYS) localStorage.removeItem(key);
+  localStorage.setItem("vibers.data.v2", "1");
+}
 
 function read<T>(key: string, fallback: T): T {
   if (typeof window === "undefined") return fallback;
@@ -27,9 +48,7 @@ function write(key: string, value: unknown) {
 }
 
 export function localProducts(): Product[] {
-  const extra = read<Product[]>(K.extra, []);
-  const slugs = new Set(extra.map((p) => p.slug));
-  return [...extra, ...SEED_PRODUCTS.filter((p) => !slugs.has(p.slug))];
+  return read<Product[]>(K.extra, []).filter((p) => !p.isDemo && !RETIRED_TEST_SLUGS.has(p.slug));
 }
 
 export function localUpsertProduct(p: Product) {

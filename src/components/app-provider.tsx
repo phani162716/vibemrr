@@ -24,7 +24,7 @@ import type {
   Role,
   Session,
 } from "@/lib/types";
-import { SEED_PRODUCTS } from "@/lib/products-seed";
+import { RETIRED_TEST_SLUGS } from "@/lib/products-seed";
 import {
   localBids,
   localBumpView,
@@ -41,6 +41,7 @@ import {
   localSaveReviews,
   localUpsertProduct,
   localViewMap,
+  wipeLegacyLocalData,
 } from "@/lib/local-market";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/client";
@@ -88,9 +89,12 @@ const AppCtx = createContext<Ctx | null>(null);
 
 function mergeProducts(remote: Product[], extra: Product[]): Product[] {
   const map = new Map<string, Product>();
-  for (const p of SEED_PRODUCTS) map.set(p.slug, p);
-  for (const p of extra) map.set(p.slug, p);
+  for (const p of extra) {
+    if (p.isDemo || RETIRED_TEST_SLUGS.has(p.slug)) continue;
+    map.set(p.slug, p);
+  }
   for (const p of remote) {
+    if (p.isDemo || RETIRED_TEST_SLUGS.has(p.slug)) continue;
     const prev = map.get(p.slug);
     map.set(p.slug, {
       ...prev,
@@ -110,7 +114,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [ready, setReady] = useState(false);
   const [currency, setCurrencyState] = useState<Currency>("INR");
   const [session, setSession] = useState<Session | null>(null);
-  const [products, setProducts] = useState<Product[]>(SEED_PRODUCTS);
+  const [products, setProducts] = useState<Product[]>([]);
   const [bids, setBids] = useState<Bid[]>([]);
   const [interested, setInterested] = useState<Record<string, string[]>>({});
   const [orders, setOrders] = useState<Order[]>([]);
@@ -236,6 +240,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
+    wipeLegacyLocalData();
     const stored = localStorage.getItem("vibemrr.currency");
     setCurrencyState(stored === "USD" ? "USD" : "INR");
     let localSess: Session | null = null;

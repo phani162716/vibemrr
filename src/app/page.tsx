@@ -74,11 +74,21 @@ export default function HomePage() {
             View all
           </Link>
         </div>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {featured.map((p) => (
-            <ProductCard key={p.slug} product={p} />
-          ))}
-        </div>
+        {featured.length === 0 ? (
+          <p className="rounded-2xl border border-dashed border-border px-4 py-10 text-center text-sm text-muted">
+            No products yet.{" "}
+            <Link href="/add" className="font-medium text-indigo-2">
+              List the first one
+            </Link>
+            .
+          </p>
+        ) : (
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {featured.map((p) => (
+              <ProductCard key={p.slug} product={p} />
+            ))}
+          </div>
+        )}
       </section>
     </div>
   );
