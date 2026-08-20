@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import {
+  resetPassword,
   signInWithGithub,
   signInWithMagicLink,
   signInWithPassword,
@@ -10,11 +11,11 @@ import {
 } from "@/lib/auth";
 
 export function AuthPanel({ next = "/dashboard" }: { next?: string }) {
-  const [mode, setMode] = useState<"password" | "link">("password");
+  const [mode, setMode] = useState<"password" | "link" | "forgot">("password");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [isNew, setIsNew] = useState(true);
+  const [isNew, setIsNew] = useState(false);
   const [pending, setPending] = useState(false);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -31,6 +32,20 @@ export function AuthPanel({ next = "/dashboard" }: { next?: string }) {
       window.location.assign(next);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Auth failed");
+    } finally {
+      setPending(false);
+    }
+  }
+
+  async function onForgot(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+    setPending(true);
+    try {
+      await resetPassword(email);
+      setSent(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not send reset email");
     } finally {
       setPending(false);
     }
@@ -61,18 +76,60 @@ export function AuthPanel({ next = "/dashboard" }: { next?: string }) {
     }
   }
 
+  const field =
+    "w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm";
+
   return (
     <div className="space-y-4">
-      <p className="text-xs text-zinc-500">Free auth — no Google Cloud, no credit card.</p>
-
-      {mode === "password" ? (
+      {mode === "forgot" ? (
+        sent ? (
+          <p className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-3 text-sm text-emerald-200">
+            If <span className="text-zinc-50">{email}</span> is on Vibers, a reset link is on its way
+            (and in spam). Open it, set a new password, then sign in.
+          </p>
+        ) : (
+          <form onSubmit={onForgot} className="space-y-3">
+            <h2 className="text-sm font-medium">Forgot password</h2>
+            <p className="text-xs text-zinc-500">
+              We’ll email a link to set a new password. This also recovers accounts that never
+              confirmed signup.
+            </p>
+            <input
+              type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@email.com"
+              className={field}
+            />
+            <button
+              type="submit"
+              disabled={pending}
+              className="w-full rounded-xl bg-saffron py-2.5 text-sm font-semibold text-zinc-950 disabled:opacity-60"
+            >
+              {pending ? "Sending…" : "Send reset link"}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setMode("password");
+                setSent(false);
+                setError(null);
+              }}
+              className="w-full text-xs text-zinc-500"
+            >
+              Back to sign in
+            </button>
+          </form>
+        )
+      ) : mode === "password" ? (
         <form onSubmit={onPassword} className="space-y-3">
           {isNew && (
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Your name"
-              className="w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm"
+              className={field}
             />
           )}
           <input
@@ -81,7 +138,7 @@ export function AuthPanel({ next = "/dashboard" }: { next?: string }) {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="you@email.com"
-            className="w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm"
+            className={field}
           />
           <input
             type="password"
@@ -90,7 +147,7 @@ export function AuthPanel({ next = "/dashboard" }: { next?: string }) {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="Password (6+ characters)"
-            className="w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm"
+            className={field}
           />
           <button
             type="submit"
@@ -99,6 +156,19 @@ export function AuthPanel({ next = "/dashboard" }: { next?: string }) {
           >
             {pending ? "Please wait…" : isNew ? "Create free account" : "Sign in"}
           </button>
+          {!isNew && (
+            <button
+              type="button"
+              onClick={() => {
+                setMode("forgot");
+                setSent(false);
+                setError(null);
+              }}
+              className="w-full text-xs text-saffron"
+            >
+              Forgot password?
+            </button>
+          )}
           <button
             type="button"
             onClick={() => setIsNew((v) => !v)}
@@ -119,7 +189,7 @@ export function AuthPanel({ next = "/dashboard" }: { next?: string }) {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="you@email.com"
-            className="w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm"
+            className={field}
           />
           <button
             type="submit"
@@ -131,33 +201,37 @@ export function AuthPanel({ next = "/dashboard" }: { next?: string }) {
         </form>
       )}
 
-      <button
-        type="button"
-        onClick={() => {
-          setMode((m) => (m === "password" ? "link" : "password"));
-          setError(null);
-          setSent(false);
-        }}
-        className="w-full text-xs text-zinc-500 hover:text-zinc-300"
-      >
-        {mode === "password" ? "Use a magic link instead" : "Use email + password instead"}
-      </button>
+      {mode !== "forgot" && (
+        <button
+          type="button"
+          onClick={() => {
+            setMode((m) => (m === "password" ? "link" : "password"));
+            setError(null);
+            setSent(false);
+          }}
+          className="w-full text-xs text-zinc-500 hover:text-zinc-300"
+        >
+          {mode === "password" ? "Use a magic link instead" : "Use email + password instead"}
+        </button>
+      )}
 
-      <div className="relative py-1 text-center text-[11px] uppercase tracking-wider text-zinc-600">
-        <span className="bg-background px-2">or</span>
-      </div>
-
-      <button
-        type="button"
-        onClick={onGithub}
-        disabled={pending}
-        className="flex w-full items-center justify-center gap-2 rounded-xl border border-white/12 bg-white px-4 py-2.5 text-sm font-semibold text-zinc-900 hover:bg-zinc-100 disabled:opacity-60"
-      >
-        <GithubMark />
-        Continue with GitHub
-      </button>
-      <p className="text-center text-[11px] text-zinc-600">GitHub OAuth is free. Optional.</p>
-      {error && <p className="text-xs text-red-400">{error}</p>}
+      {mode !== "forgot" && (
+        <>
+          <div className="relative py-1 text-center text-[11px] uppercase tracking-wider text-zinc-600">
+            <span className="bg-background px-2">or</span>
+          </div>
+          <button
+            type="button"
+            onClick={onGithub}
+            disabled={pending}
+            className="flex w-full items-center justify-center gap-2 rounded-xl border border-white/12 bg-white px-4 py-2.5 text-sm font-semibold text-zinc-900 hover:bg-zinc-100 disabled:opacity-60"
+          >
+            <GithubMark />
+            Continue with GitHub
+          </button>
+        </>
+      )}
+      {error && <p className="text-sm text-red-400">{error}</p>}
     </div>
   );
 }
