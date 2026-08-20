@@ -42,6 +42,7 @@ import {
 } from "@/lib/local-market";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/client";
+import { saveMyProfile } from "@/lib/profile";
 
 type Ctx = {
   ready: boolean;
@@ -273,13 +274,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           setSession(next);
           localStorage.setItem("vibemrr.session", JSON.stringify(next));
           if (next.whatsapp) {
-            await sb.from("profiles").upsert({
-              id: user.id,
-              email: next.email,
+            await saveMyProfile({
               name: next.name,
               whatsapp: next.whatsapp,
-              updated_at: new Date().toISOString(),
-            });
+              handle: next.handle,
+              bio: next.bio,
+              role: next.role,
+            }).catch(() => undefined);
           }
         }
         await refreshSb().catch(() => undefined);
@@ -355,12 +356,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setSession(next);
       localStorage.setItem("vibemrr.session", JSON.stringify(next));
       if (session.id && isSupabaseConfigured()) {
-        await createClient().from("profiles").upsert({
-          id: session.id,
-          email: session.email,
+        await saveMyProfile({
           name: session.name,
-          primary_role: role,
-          updated_at: new Date().toISOString(),
+          whatsapp: session.whatsapp,
+          handle: session.handle,
+          bio: session.bio,
+          role,
         });
       }
     },
@@ -380,22 +381,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setSession(next);
       localStorage.setItem("vibemrr.session", JSON.stringify(next));
       if (session.id && isSupabaseConfigured()) {
-        const sb = createClient();
-        const { error } = await sb.from("profiles").upsert({
-          id: session.id,
-          email: next.email,
+        await saveMyProfile({
           name: next.name,
-          whatsapp: next.whatsapp ?? null,
-          handle: next.handle ?? null,
-          bio: next.bio ?? null,
-          primary_role: next.role ?? null,
-          updated_at: new Date().toISOString(),
+          whatsapp: next.whatsapp,
+          handle: next.handle,
+          bio: next.bio,
+          role: next.role,
         });
-        if (error) throw new Error(error.message);
-        const { error: metaErr } = await sb.auth.updateUser({
-          data: { full_name: next.name, whatsapp: next.whatsapp },
-        });
-        if (metaErr) throw new Error(metaErr.message);
       }
     },
     [session]

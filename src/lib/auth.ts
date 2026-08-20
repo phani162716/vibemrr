@@ -51,12 +51,12 @@ export async function signUpWithPassword(email: string, password: string, name?:
     );
   }
   if (data.user) {
-    await supabase.from("profiles").upsert({
-      id: data.user.id,
-      email,
-      name: name || email.split("@")[0],
-      whatsapp: digits,
-      updated_at: new Date().toISOString(),
+    await supabase.rpc("save_my_profile", {
+      p_name: name || email.split("@")[0],
+      p_whatsapp: digits,
+      p_handle: null,
+      p_bio: null,
+      p_role: null,
     });
   }
   return digits;
