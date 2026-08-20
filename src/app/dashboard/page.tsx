@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useApp } from "@/components/app-provider";
 import { AuthPanel } from "@/components/auth-panel";
 import { moneyFull } from "@/lib/format";
@@ -11,6 +11,14 @@ import { isSupabaseConfigured } from "@/lib/supabase/env";
 type Tab = "overview" | "products" | "bids" | "sales" | "saved" | "purchases";
 
 export default function DashboardPage() {
+  return (
+    <Suspense>
+      <DashboardInner />
+    </Suspense>
+  );
+}
+
+function DashboardInner() {
   const {
     session,
     signIn,
@@ -27,20 +35,28 @@ export default function DashboardPage() {
     checkout,
   } = useApp();
   const router = useRouter();
+  const params = useSearchParams();
   const [tab, setTab] = useState<Tab>("overview");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
 
   useEffect(() => {
+    const t = params.get("tab") as Tab | null;
+    if (t && ["overview", "products", "bids", "sales", "saved", "purchases"].includes(t)) {
+      setTab(t);
+      return;
+    }
     if (session?.role === "buyer") setTab("saved");
     if (session?.role === "seller") setTab("overview");
-  }, [session?.role]);
+  }, [session?.role, params]);
 
   const mine = useMemo(
     () => (session?.id ? products.filter((p) => p.ownerId === session.id) : []),
     [session, products]
   );
-  const incoming = bids.filter((b) => mine.some((p) => p.slug === b.productSlug));
+  const incoming = bids.filter(
+    (b) => (session?.id && b.sellerId === session.id) || mine.some((p) => p.slug === b.productSlug)
+  );
   const myBids = session ? bids.filter((b) => b.buyerEmail === session.email || b.buyerId === session.id) : [];
   const myOrders = session ? orders.filter((o) => o.buyerId === session.id) : [];
   const sales = session ? orders.filter((o) => o.sellerId === session.id) : [];
@@ -203,7 +219,17 @@ export default function DashboardPage() {
             <Empty title="No bids yet" hint={seller ? "When buyers offer, they show up here." : "Make an offer on a product."} href="/market" cta="Explore" />
           )}
           {(seller ? incoming : myBids).map((b) => (
-            <div key={b.id} className="rounded-2xl border border-white/8 p-4 text-sm">
+            <div
+              key={b.id}
+              className={`rounded-2xl border p-4 text-sm ${
+                b.status === "counter" ? "border-saffron/40 bg-saffron/5" : "border-white/8"
+              }`}
+            >
+              {b.status === "counter" && !seller && (
+                <p className="mb-2 text-xs font-semibold text-saffron">
+                  Seller countered — {moneyFull(b.amountInr, currency)}. Accept or reject below.
+                </p>
+              )}
               <p className="font-medium">
                 {b.productName} · {b.status}
               </p>

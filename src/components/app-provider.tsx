@@ -132,6 +132,70 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setProducts(mergeProducts(remote, localProducts().filter((p) => !p.isDemo)));
   }, []);
 
+  const loadRemoteBids = useCallback(async () => {
+    if (!isSupabaseConfigured()) return;
+    const sb = createClient();
+    const { data: bidRows, error } = await sb.from("bids").select("*").order("updated_at", { ascending: false });
+    if (error || !bidRows) return;
+    const { data: msgRows } = await sb.from("bid_messages").select("*").order("created_at", { ascending: true });
+    const msgs = (msgRows ?? []) as {
+      id: string;
+      bid_id: string;
+      actor_name: string | null;
+      role: "buyer" | "seller";
+      amount_inr: number | null;
+      message: string | null;
+      kind: BidMessage["kind"];
+      created_at: string;
+    }[];
+    const remote: Bid[] = (bidRows as Record<string, unknown>[]).map((row) => {
+      const id = String(row.id);
+      const thread = msgs
+        .filter((m) => m.bid_id === id)
+        .map((m) => ({
+          id: m.id,
+          role: m.role,
+          actorName: m.actor_name || "User",
+          amountInr: m.amount_inr ?? undefined,
+          message: m.message || m.kind,
+          kind: m.kind,
+          createdAt: m.created_at,
+        }));
+      return {
+        id,
+        productId: String(row.product_id ?? ""),
+        productSlug: String(row.product_slug ?? ""),
+        productName: String(row.product_name ?? "Product"),
+        askingInr: Number(row.asking_inr ?? 0),
+        buyerId: row.buyer_id ? String(row.buyer_id) : undefined,
+        buyerName: String(row.buyer_name ?? "Buyer"),
+        buyerEmail: String(row.buyer_email ?? ""),
+        sellerId: row.seller_id ? String(row.seller_id) : undefined,
+        amountInr: Number(row.amount_inr ?? 0),
+        status: (row.status as BidStatus) || "pending",
+        createdAt: String(row.created_at),
+        messages: thread,
+      };
+    });
+    setBids((local) => {
+      const map = new Map<string, Bid>();
+      for (const b of local) map.set(b.id, b);
+      for (const b of remote) {
+        const prev = map.get(b.id);
+        map.set(b.id, {
+          ...prev,
+          ...b,
+          productSlug: b.productSlug || prev?.productSlug || "",
+          productName: b.productName || prev?.productName || "Product",
+          messages: b.messages.length ? b.messages : prev?.messages ?? [],
+        });
+      }
+      const next = [...map.values()].sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
+      localSaveBids(next);
+      return next;
+    });
+  }, []);
+
   useEffect(() => {
     const stored = localStorage.getItem("vibemrr.currency");
     setCurrencyState(stored === "USD" ? "USD" : "INR");
@@ -193,6 +257,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           localStorage.setItem("vibemrr.session", JSON.stringify(next));
         }
         await refreshSb().catch(() => undefined);
+        await loadRemoteBids().catch(() => undefined);
       } finally {
         if (alive) setReady(true);
       }
@@ -215,11 +280,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         return next;
       });
     });
+    const tick = window.setInterval(() => {
+      loadRemoteBids().catch(() => undefined);
+    }, 4000);
     return () => {
       alive = false;
       sub.subscription.unsubscribe();
+      window.clearInterval(tick);
     };
-  }, [refreshSb]);
+  }, [refreshSb, loadRemoteBids]);
 
   const setCurrency = useCallback((c: Currency) => {
     setCurrencyState(c);
@@ -416,14 +485,40 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         });
       }
       if (persist === "sb" && session.id) {
-        await createClient().from("bids").insert({
+        const productId = product.id.match(/^[0-9a-f-]{36}$/i) ? product.id : null;
+        const payload: Record<string, unknown> = {
           id: bid.id,
-          product_id: product.id.match(/^[0-9a-f-]{36}$/i) ? product.id : null,
+          product_id: productId,
           buyer_id: session.id,
           buyer_name: session.name,
           buyer_email: session.email,
           amount_inr: amountInr,
           status: "pending",
+          product_slug: product.slug,
+          product_name: product.name,
+          asking_inr: product.askingInr,
+          seller_id: product.ownerId ?? null,
+        };
+        const { error } = await createClient().from("bids").insert(payload);
+        if (error) {
+          await createClient().from("bids").insert({
+            id: bid.id,
+            product_id: productId,
+            buyer_id: session.id,
+            buyer_name: session.name,
+            buyer_email: session.email,
+            amount_inr: amountInr,
+            status: "pending",
+          });
+        }
+        await createClient().from("bid_messages").insert({
+          id: msg.id,
+          bid_id: bid.id,
+          actor_name: session.name,
+          role: "buyer",
+          amount_inr: amountInr,
+          message,
+          kind: "bid",
         });
       }
     },
@@ -433,31 +528,62 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const respondBid = useCallback(
     async (bidId: string, kind: "accept" | "reject" | "counter", amountInr?: number, message?: string) => {
       if (!session) throw new Error("Sign in");
+      const current = bids.find((b) => b.id === bidId);
+      const status: BidStatus = kind === "accept" ? "accepted" : kind === "reject" ? "rejected" : "counter";
+      const row: BidMessage = {
+        id: uid(),
+        role: session.id && current?.sellerId === session.id ? "seller" : current?.buyerId === session.id ? "buyer" : "seller",
+        actorName: session.name,
+        amountInr: amountInr ?? current?.amountInr,
+        message: message || (kind === "counter" ? "Counter offer" : kind),
+        kind,
+        createdAt: new Date().toISOString(),
+      };
       setBids((cur) => {
-        const next = cur.map((b) => {
-          if (b.id !== bidId) return b;
-          const status: BidStatus = kind === "accept" ? "accepted" : kind === "reject" ? "rejected" : "counter";
-          const row: BidMessage = {
-            id: uid(),
-            role: session.id && b.sellerId === session.id ? "seller" : "buyer",
-            actorName: session.name,
-            amountInr: amountInr ?? b.amountInr,
-            message: message || kind,
-            kind,
-            createdAt: new Date().toISOString(),
-          };
-          return {
-            ...b,
-            status,
-            amountInr: amountInr ?? b.amountInr,
-            messages: [...b.messages, row],
-          };
-        });
+        const next = cur.map((b) =>
+          b.id !== bidId
+            ? b
+            : {
+                ...b,
+                status,
+                amountInr: amountInr ?? b.amountInr,
+                messages: [...b.messages, row],
+              }
+        );
         localSaveBids(next);
         return next;
       });
+      if (kind === "counter" && current?.buyerId) {
+        notify({
+          userId: current.buyerId,
+          title: "Seller counteroffer",
+          body: `${session.name} countered ${current.productName} at ₹${amountInr ?? current.amountInr}`,
+          href: "/dashboard?tab=bids",
+        });
+      }
+      if (persist === "sb") {
+        const sb = createClient();
+        await sb.from("bids").update({ status, amount_inr: amountInr ?? current?.amountInr, updated_at: new Date().toISOString() }).eq("id", bidId);
+        await sb.from("bid_messages").insert({
+          id: row.id,
+          bid_id: bidId,
+          actor_name: session.name,
+          role: row.role,
+          amount_inr: row.amountInr ?? null,
+          message: row.message,
+          kind,
+        });
+        if (current?.buyerId && kind === "counter") {
+          await sb.from("notifications").insert({
+            user_id: current.buyerId,
+            title: "Seller counteroffer",
+            body: `${session.name} countered ${current.productName} at ₹${amountInr ?? current.amountInr}`,
+            href: "/dashboard?tab=bids",
+          });
+        }
+      }
     },
-    [session]
+    [session, bids, persist, notify]
   );
 
   const checkout = useCallback(

@@ -43,7 +43,11 @@ create table if not exists public.interests (
 
 create table if not exists public.bids (
   id uuid primary key default gen_random_uuid(),
-  product_id uuid not null references public.products (id) on delete cascade,
+  product_id uuid references public.products (id) on delete cascade,
+  product_slug text,
+  product_name text,
+  asking_inr numeric,
+  seller_id uuid,
   buyer_id uuid references auth.users (id) on delete set null,
   buyer_name text,
   buyer_email text,
@@ -52,6 +56,11 @@ create table if not exists public.bids (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+alter table public.bids add column if not exists product_slug text;
+alter table public.bids add column if not exists product_name text;
+alter table public.bids add column if not exists asking_inr numeric;
+alter table public.bids add column if not exists seller_id uuid;
 
 create table if not exists public.bid_messages (
   id uuid primary key default gen_random_uuid(),
@@ -143,13 +152,17 @@ drop policy if exists "bids insert" on public.bids;
 create policy "bids insert" on public.bids for insert with check (auth.uid() = buyer_id);
 drop policy if exists "bids read" on public.bids;
 create policy "bids read" on public.bids for select using (
-  auth.uid() = buyer_id or exists (
+  auth.uid() = buyer_id
+  or auth.uid() = seller_id
+  or exists (
     select 1 from public.products p where p.id = bids.product_id and p.owner_id = auth.uid()
   )
 );
 drop policy if exists "bids update parties" on public.bids;
 create policy "bids update parties" on public.bids for update using (
-  auth.uid() = buyer_id or exists (
+  auth.uid() = buyer_id
+  or auth.uid() = seller_id
+  or exists (
     select 1 from public.products p where p.id = bids.product_id and p.owner_id = auth.uid()
   )
 );
