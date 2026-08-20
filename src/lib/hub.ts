@@ -56,36 +56,46 @@ function saveLocal(part: { messages?: HubMessage[]; requests?: HubRequest[]; off
   if (part.offers) write(K.offers, part.offers);
 }
 
-export async function loadHub(): Promise<{
+export async function loadHub(opts?: { includeChat?: boolean }): Promise<{
   messages: HubMessage[];
   requests: HubRequest[];
   offers: HubOffer[];
   remoteOk: boolean;
 }> {
+  const includeChat = opts?.includeChat !== false;
   const local = localHub();
+  if (!includeChat) {
+    const publicLocal = { messages: [] as HubMessage[], requests: local.requests, offers: local.offers, remoteOk: false };
+    if (!isSupabaseConfigured()) return publicLocal;
+  }
   if (!isSupabaseConfigured()) {
-    return { ...local, remoteOk: false };
+    return includeChat ? { ...local, remoteOk: false } : { messages: [], requests: local.requests, offers: local.offers, remoteOk: false };
   }
   try {
     const sb = createClient();
-    const [msgRes, reqRes, offRes] = await Promise.all([
-      sb.from("hub_messages").select("*").order("created_at", { ascending: true }).limit(300),
-      sb.from("hub_requests").select("*").order("created_at", { ascending: false }).limit(200),
-      sb.from("hub_offers").select("*").order("created_at", { ascending: true }).limit(400),
-    ]);
-    if (msgRes.error || reqRes.error || offRes.error) {
-      return { ...local, remoteOk: false };
+    const reqResP = sb.from("hub_requests").select("*").order("created_at", { ascending: false }).limit(200);
+    const offResP = sb.from("hub_offers").select("*").order("created_at", { ascending: true }).limit(400);
+    const msgResP = includeChat
+      ? sb.from("hub_messages").select("*").order("created_at", { ascending: true }).limit(300)
+      : Promise.resolve({ data: [] as Record<string, unknown>[], error: null });
+    const [msgRes, reqRes, offRes] = await Promise.all([msgResP, reqResP, offResP]);
+    if (reqRes.error || offRes.error) {
+      return includeChat
+        ? { ...local, remoteOk: false }
+        : { messages: [], requests: local.requests, offers: local.offers, remoteOk: false };
     }
-    const messages = mergeById(
-      local.messages,
-      (msgRes.data ?? []).map((row: Record<string, unknown>) => ({
-        id: String(row.id),
-        authorId: String(row.author_id ?? ""),
-        authorName: String(row.author_name ?? "Viber"),
-        body: String(row.body ?? ""),
-        createdAt: String(row.created_at),
-      }))
-    );
+    const messages = includeChat
+      ? mergeById(
+          local.messages,
+          (msgRes.data ?? []).map((row: Record<string, unknown>) => ({
+            id: String(row.id),
+            authorId: String(row.author_id ?? ""),
+            authorName: String(row.author_name ?? "Viber"),
+            body: String(row.body ?? ""),
+            createdAt: String(row.created_at),
+          }))
+        )
+      : [];
     const requests = mergeById(
       local.requests,
       (reqRes.data ?? []).map((row: Record<string, unknown>) => ({
@@ -112,10 +122,13 @@ export async function loadHub(): Promise<{
         createdAt: String(row.created_at),
       }))
     );
-    saveLocal({ messages, requests, offers });
+    if (includeChat) saveLocal({ messages, requests, offers });
+    else saveLocal({ requests, offers });
     return { messages, requests, offers, remoteOk: true };
   } catch {
-    return { ...local, remoteOk: false };
+    return includeChat
+      ? { ...local, remoteOk: false }
+      : { messages: [], requests: local.requests, offers: local.offers, remoteOk: false };
   }
 }
 

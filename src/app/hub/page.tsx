@@ -38,8 +38,8 @@ export default function HubPage() {
   const viber = isListedViber(products, session?.id);
 
   async function refresh() {
-    const data = await loadHub();
-    setMessages(data.messages);
+    const data = await loadHub({ includeChat: viber });
+    setMessages(viber ? data.messages : []);
     setRequests(data.requests);
     setOffers(data.offers);
     setRemoteOk(data.remoteOk);
@@ -49,7 +49,8 @@ export default function HubPage() {
     void refresh();
     const t = window.setInterval(() => void refresh(), 4000);
     return () => window.clearInterval(t);
-  }, []);
+    // viber flips after products load
+  }, [viber]);
 
   useEffect(() => {
     const el = scroller.current;
@@ -361,8 +362,9 @@ export default function HubPage() {
       <p className="text-xs font-semibold uppercase tracking-wider text-indigo-2">Community</p>
       <h1 className="font-serif mt-1 text-4xl">VibersHub</h1>
       <p className="mt-2 max-w-2xl text-sm text-muted">
-        Vibers who listed a product can chat. Buyers cannot post in chat — they send a request (what they want and what
-        they can pay). Any Viber who can build it sends an offer.
+        {viber
+          ? "Viber chat is private to people who listed a product. Buyers only see custom requests."
+          : "Post a custom request (what you want and what you can pay). Vibers who can build it will send an offer. Seller chat is hidden from buyers."}
       </p>
       {!remoteOk && (
         <p className="mt-3 rounded-xl border border-accent/30 bg-accent/10 px-3 py-2 text-xs">
@@ -371,19 +373,21 @@ export default function HubPage() {
         </p>
       )}
       {err && <p className="mt-3 text-sm text-danger">{err}</p>}
-      <div className="mt-6 flex gap-2 lg:hidden">
-        <button type="button" onClick={() => setTab("requests")} className={tab === "requests" ? "btn-primary" : "btn-ghost"}>
-          Requests
-        </button>
-        <button type="button" onClick={() => setTab("chat")} className={tab === "chat" ? "btn-primary" : "btn-ghost"}>
-          Chat
-        </button>
+      {viber && (
+        <div className="mt-6 flex gap-2 lg:hidden">
+          <button type="button" onClick={() => setTab("requests")} className={tab === "requests" ? "btn-primary" : "btn-ghost"}>
+            Requests
+          </button>
+          <button type="button" onClick={() => setTab("chat")} className={tab === "chat" ? "btn-primary" : "btn-ghost"}>
+            Chat
+          </button>
+        </div>
+      )}
+      <div className={`mt-6 ${viber ? "hidden grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] gap-6 lg:grid" : ""}`}>
+        {viber && chatPane}
+        {viber && requestPane}
       </div>
-      <div className="mt-6 hidden grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] gap-6 lg:grid">
-        {chatPane}
-        {requestPane}
-      </div>
-      <div className="mt-4 lg:hidden">{tab === "chat" ? chatPane : requestPane}</div>
+      <div className={viber ? "mt-4 lg:hidden" : "mt-6"}>{viber && tab === "chat" ? chatPane : requestPane}</div>
     </div>
   );
 }

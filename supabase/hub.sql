@@ -56,7 +56,8 @@ alter table public.hub_requests enable row level security;
 alter table public.hub_offers enable row level security;
 
 drop policy if exists "hub messages read" on public.hub_messages;
-create policy "hub messages read" on public.hub_messages for select using (true);
+create policy "hub messages read" on public.hub_messages
+  for select using (public.is_listed_viber(auth.uid()));
 drop policy if exists "hub messages insert" on public.hub_messages;
 create policy "hub messages insert" on public.hub_messages
   for insert with check (auth.uid() = author_id and public.is_listed_viber(auth.uid()));
